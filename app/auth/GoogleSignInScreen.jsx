@@ -1,12 +1,8 @@
 import React, { useEffect } from "react";
-import { View, Text, TouchableOpacity, Image } from "react-native";
+import { View, Text, TouchableOpacity, Image, Platform } from "react-native";
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { auth } from "../firebase/firebaseConfig";
-import { Platform } from "react-native";
-import {
-  GoogleSigninButton,
-  GoogleSignin,
-} from "@react-native-google-signin/google-signin";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 const GoogleSignInScreen = () => {
   const isWeb = Platform.OS === "web";
@@ -30,13 +26,21 @@ const GoogleSignInScreen = () => {
     }
   };
 
+  const handleGoogleSignInMobile = async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      console.log("Signed in user (Mobile):", userInfo);
+    } catch (error) {
+      console.error("Error signing in with Google on Mobile:", error);
+    }
+  };
+
   return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <Text style={{ marginBottom: 20 }}>Sign in with Google</Text>
+    <>
       {isWeb ? (
         <TouchableOpacity
           style={{
-            backgroundColor: "#4285F4",
             paddingVertical: 10,
             paddingHorizontal: 20,
             borderRadius: 5,
@@ -51,19 +55,36 @@ const GoogleSignInScreen = () => {
             }}
             style={{ width: 20, height: 20, marginRight: 10 }}
           />
-          <Text style={{ color: "#fff", fontWeight: "bold" }}>
-            Sign in with Google (Web)
+          <Text style={{ color: "#000", fontWeight: "bold" }}>
+            Sign in with Google
           </Text>
         </TouchableOpacity>
       ) : (
-        <GoogleSigninButton
-          style={{ width: 192, height: 48 }}
-          size={GoogleSigninButton.Size.Wide}
-          color={GoogleSigninButton.Color.Dark}
-          onPress={() => GoogleSignin.signIn()}
-        />
+        <TouchableOpacity
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: "transparent", // Transparent background
+            paddingVertical: 10,
+            paddingHorizontal: 20,
+            borderRadius: 5,
+            elevation: 0, // Remove shadow (Android)
+            shadowColor: "transparent", // Remove shadow (iOS)
+          }}
+          onPress={handleGoogleSignInMobile}
+        >
+          <Image
+            source={{
+              uri: "https://developers.google.com/identity/images/g-logo.png",
+            }}
+            style={{ width: 20, height: 20, marginRight: 10 }}
+          />
+          <Text style={{ color: "#000", fontWeight: "bold" }}>
+            Sign in with Google
+          </Text>
+        </TouchableOpacity>
       )}
-    </View>
+    </>
   );
 };
 

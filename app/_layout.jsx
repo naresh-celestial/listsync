@@ -1,10 +1,9 @@
-// app/_layout.jsx
 import React from "react";
-import { Stack } from "expo-router";
+import { Stack } from "expo-router"; // Use Expo Router's Stack
 import { useFonts } from "expo-font";
 import Loading from "../components/loading";
 import { Provider as PaperProvider } from "react-native-paper";
-import AuthGuard from "./navigation/AuthGuard";
+import AuthGuard from "./navigation/AuthGuard"; // Ensure AuthGuard is properly exported
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -18,12 +17,13 @@ export default function RootLayout() {
   return (
     <PaperProvider>
       <AuthGuard>
-        <Stack>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+        {/* Use Expo Router's Stack for navigation */}
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="auth/login/index" />
           <Stack.Screen
             name="ListManager/index"
-            options={{ title: "List Manager" }}
+            options={{ title: "List Manager", headerShown: true }}
           />
         </Stack>
       </AuthGuard>
