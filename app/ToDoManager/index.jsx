@@ -13,11 +13,11 @@ const ToDoManager = () => {
     ]);
     // {id: 1, title:'First List', description:'This is the first item in the list'},
     //     {id: 2, title:'Second List', description:'This is the second item in the list'},
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
 
     //Controller functions
     const addItems = () => {
-        setIsModalOpen(!isModalOpen);
+        setIsAddFieldOpen(!isAddFieldOpen);
     }
 
     //Components
@@ -75,7 +75,7 @@ const ToDoManager = () => {
             )
         }
     }
-    const ListModal = () => {
+    const NewListItemField = () => {
         const [itemTitle, onTitleChange] = useState('');
         const [itemDescription, onDescriptionChange] = useState('');
 
@@ -104,29 +104,32 @@ const ToDoManager = () => {
         }
 
         const modalHandler = () => {
-            setIsModalOpen(!isModalOpen);
+            setIsAddFieldOpen(!isAddFieldOpen);
         }
 
         return (
-            <View style={styles.listModalWrapper}>
-                <View style={styles.listModalContainer}>
-                    <Text style={styles.listModalTitle}>Add Note</Text>
+            <View style={styles.listModalContainer}>
+                <View style={styles.fieldsSection}>
                     <TextInput
-                        style={styles.modalInputField}
+                        style={[styles.modalInputField, styles.modalInputFieldTitle]}
                         placeholder="Title"
                         value={itemTitle}
                         onChangeText={onTitleChange}
                     />
                     <TextInput
-                        style={styles.modalInputField}
+                        style={[styles.modalInputField, styles.modalInputFieldDescription]}
                         value={itemDescription}
                         placeholder="Description"
                         onChangeText={onDescriptionChange}
                     />
+                </View>
+                <View style={styles.validateSection}>
                     <Pressable 
                         onPress={() => addItem(itemTitle, itemDescription)} 
-                        style={isFieldValid() ? styles.modalSubmitButton : styles.modalSubmiteButtonDisabled}>
-                        <Text style={styles.modalSubmitButtonText}>{isFieldValid() ? "DONE" : "CANCEL"}</Text>
+                        style={styles.modalSubmitButton}>
+                        {isFieldValid() ?
+                        <Image source={require('../../assets/images/tick.png')} style={styles.submitIcon}/>
+                        : <Image source={require('../../assets/images/delete.png')} style={styles.submitIcon}/>}
                     </Pressable>
                 </View>
             </View>
@@ -215,12 +218,14 @@ const ToDoManager = () => {
                 </View>
                 <View style={styles.bodyList}>
                     <RenderFlatListView/>
+                    {isAddFieldOpen ? 
+                    <NewListItemField/> : null}
                     <ListShare/>
                 </View>
             </View>
             <View style={styles.footer}></View>
             <AddItemButton/>
-            {isModalOpen ? <ListModal/> : null}
+            {/* {isAddFieldOpen ? <ListModal/> : null} */}
         </View>
     )
 }
@@ -374,26 +379,45 @@ const styles = StyleSheet.create({
         justifyContent:'center',
     },
     listModalContainer:{
-        width:'80%',
-        height:'30%',
-        backgroundColor:'white',
-        borderRadius:15,
-        elevation:10,
+        width:'90%',
         display:'flex',
+        flexDirection:'row',
         alignItems:'center',
-        justifyContent:'center'
+        justifyContent:'center',
+        backgroundColor:'#D3D3D360',
+        marginLeft:20,
+        marginTop:15,
+        paddingBottom:5,
+        borderRadius:10
+    },
+    fieldsSection:{
+        flex:0.9,
+        marginLeft:20
+    },
+    validateSection:{
+        flex:0.1,
+        marginRight:10
     },
     emptyListText:{
         textAlign:'center'
     },
+    submitIcon:{
+        width:25,
+        height:25,
+        marginTop:5
+    },
+    discardIcon:{
+        height:25,
+        width:25
+    },
     modalSubmitButton:{
-        width:90,
+        width:30,
         height:30,
         borderRadius:15,
+        marginTop:5,
         display:'flex',
         alignItems:'center',
         justifyContent:'center',
-        backgroundColor:'#007BFF'
     },
     modalSubmiteButtonDisabled:{
         width:90,
@@ -412,9 +436,10 @@ const styles = StyleSheet.create({
     },
     modalInputField:{
         width:'80%',
-        borderBottomWidth:1,
-        marginBottom:30,
-        borderColor:'#D3D3D3',
+        marginBottom:-5
+    },
+    modalInputFieldTitle:{
+        fontWeight:"500"
     },
     modalSubmitButtonText:{
         color:'white',
