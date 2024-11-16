@@ -1,5 +1,7 @@
 import WelcomeScreen from "./auth/WelcomeScreen";
-
-export default function Index() {
-  return <WelcomeScreen />;
+import ToDoManager from "./ToDoManager";
+const Index = () => {
+  return <ToDoManager/>
 }
+
+export default Index;

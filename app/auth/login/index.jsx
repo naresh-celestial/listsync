@@ -1,3 +1,4 @@
+import { Link, useNavigation } from "@react-navigation/native";
 import React, { useState } from "react";
 import {
   View,
@@ -7,26 +8,29 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
+import { useRouter } from "expo-router";
 
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const router = useRouter();
 
   const handleLogin = () => {
-    if (email && password) {
-      console.log("Logging in", email, password);
+    // if (email && password) {
+      // console.log("Logging in", email, password);
 
-      navigation.replace("ToDo"); // Replace so user can’t go back to login
-    } else {
-      alert("Please enter credentials");
-    }
+      // navigation.navigate("ToDo"); // Replace so user can’t go back to login
+      router.replace("/ToDoManager")
+    // } else {
+    //   alert("Please enter credentials");
+    // }
   };
 
   return (
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.backButton}
-        onPress={() => navigation.navigate("Welcome")}
+        onPress={() => router.replace('/auth/WelcomeScreen')}
       >
         <Text style={styles.backButtonText}>{"< Back"}</Text>
       </TouchableOpacity>
@@ -44,7 +48,7 @@ const LoginScreen = ({ navigation }) => {
         secureTextEntry
         style={styles.input}
       />
-      <Button title="Login" onPress={handleLogin} />
+      <Button title="Login" onPress={handleLogin}/>
     </View>
   );
 };

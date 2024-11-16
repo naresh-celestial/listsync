@@ -2,7 +2,7 @@
   "project_info": {
     "project_number": "919160955616",
     "project_id": "listsync-c33d8",
-    "storage_bucket": "listsync-c33d8.appspot.com"
+    "storage_bucket": "listsync-c33d8.firebasestorage.app"
   },
   "client": [
     {
