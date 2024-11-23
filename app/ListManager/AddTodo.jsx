@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, TextInput, Button, StyleSheet } from "react-native";
+import { View, TextInput, Button, StyleSheet, Text } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 
@@ -11,7 +11,12 @@ const AddTodo = () => {
   const saveTodo = async () => {
     const storedTodos = await AsyncStorage.getItem("todos");
     const todos = storedTodos ? JSON.parse(storedTodos) : [];
-    const newTodo = { id: Date.now().toString(), title, notes };
+    const newTodo = { 
+      id: Date.now().toString(), 
+      title, 
+      notes, 
+      data:[]
+    };
 
     const updatedTodos = [...todos, newTodo];
     await AsyncStorage.setItem("todos", JSON.stringify(updatedTodos));
@@ -20,6 +25,7 @@ const AddTodo = () => {
 
   return (
     <View style={styles.container}>
+      <Text>Create List</Text>
       <TextInput
         placeholder="Enter your title"
         value={title}
@@ -42,6 +48,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    marginTop:10
   },
   input: {
     height: 40,

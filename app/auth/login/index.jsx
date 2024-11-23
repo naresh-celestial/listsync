@@ -20,7 +20,7 @@ const LoginScreen = () => {
       // console.log("Logging in", email, password);
 
       // navigation.navigate("ToDo"); // Replace so user can’t go back to login
-      router.replace("/ToDoManager")
+      router.replace("/TodoList")
     // } else {
     //   alert("Please enter credentials");
     // }

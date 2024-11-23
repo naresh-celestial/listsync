@@ -1,16 +1,18 @@
 import { Text, View, StyleSheet,TouchableOpacity, Pressable, FlatList, Image, TextInput, ToastAndroid } from "react-native";
 import { Title } from "react-native-paper";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const ToDoManager = () => {
+    const item = useLocalSearchParams();
+    //hooks
+    const [listData, setListData] = useState(item);
     //router
     const router = useRouter();
 
     //state
-    const [myList, setMyList] = useState([
-    ]);
+    const [myList, setMyList] = useState([]);
     // {id: 1, title:'First List', description:'This is the first item in the list'},
     //     {id: 2, title:'Second List', description:'This is the second item in the list'},
     const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
@@ -31,12 +33,12 @@ const ToDoManager = () => {
     //List Items
     const FlatListItem = ({id, title, description}) => {
         const deleteItem = (id) => {
-            let tempList = [...myList];
+            let tempList = [...listData.data];
             if(tempList.length == 1) {
-                setMyList([]);    
+                setListData(listData => ({...listData, data:[]}))
             } else {
                 tempList.splice(id - 1, 1);
-                setMyList(tempList);
+                setListData(listData => ({...listData, data:tempList}));
             }
         }
         return (
@@ -61,9 +63,9 @@ const ToDoManager = () => {
         )
     }
     const RenderFlatListView = () => {
-        if(myList.length !== 0) {
+        if(listData.data.length !== 0) {
             return <FlatList 
-                data={myList} 
+                data={listData.data} 
                 renderItem={(item) => {
                    return <FlatListItem id={item.item.id} title={item.item.title} description={item.item.description}/>
                 }}
@@ -80,7 +82,7 @@ const ToDoManager = () => {
         const [itemDescription, onDescriptionChange] = useState('');
 
         const isFieldValid = () => {
-            if(itemTitle.length !== 0 && itemDescription.length !== 0) {
+            if(itemTitle.length !== 0) {
                 return true;
             } else {
                 return false;
@@ -89,14 +91,15 @@ const ToDoManager = () => {
 
         const addItem = (title, description) => {
             if(isFieldValid()) {
-                let existingListCopy = [...myList];
+                console.log('94',typeof listData.data)
+                let existingListCopy = [...listData.data];
                 let itemObject = {
                     id:existingListCopy.length + 1,
                     title:title,
                     description:description
                 }
                 existingListCopy.push(itemObject);
-                setMyList(existingListCopy);
+                setListData(listData => ({...listData, data:existingListCopy}));
                 modalHandler();    
             } else {
                 modalHandler();
@@ -150,9 +153,22 @@ const ToDoManager = () => {
     //Set to Local Storage
     const setToLocalStorage = async (list) => {
         try{
-            await AsyncStorage.setItem('mylist',JSON.stringify(list));
-            console.log('151',typeof list)
-            console.log('saved!')
+            const storedTodos = await AsyncStorage.getItem("todos");
+            let parsedAllData = JSON.parse(storedTodos);
+            
+            const {id, data} = list;
+            let selectedData = parsedAllData.find((item) => item.id === id);
+            selectedData.data = data;
+            
+            const findObject = (listItem) => {
+                return listItem === selectedData;
+            }
+            let indexOfSelectedList = parsedAllData.findIndex(findObject);
+            parsedAllData[indexOfSelectedList] = selectedData;
+
+            console.log('168',parsedAllData);
+
+            await AsyncStorage.setItem("todos", JSON.stringify(parsedAllData));
         } catch(err) {
             console.log(err);
         }
@@ -176,57 +192,43 @@ const ToDoManager = () => {
 
     //Side effect on every item change
     useEffect(() => {
-        if(myList) {
-            try {
-                setToLocalStorage(myList);
-            } catch(err) {
-                console.log(err);
-            }
+        if(listData) {
+            setToLocalStorage(listData);
         }
-    }, [myList])
-
-    //Component on mount
-    useEffect(() => {
-        try{
-            getFromLocalStorage();
-        } catch(err) {
-            console.log(err);
-        }
-    }, [])
+    }, [listData])
 
     return (
-        <View style={styles.toDoContainer}>
-            <View style={styles.header}>
-                <View style={styles.navSection}>
-                    <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={() => router.replace('/auth/WelcomeScreen')}
-                    >
-                        <Text style={styles.backButtonText}>{" < Back"}</Text>
-                    </TouchableOpacity>
-                </View>
-                <View style={styles.headerSection}>
-                    <Text style={styles.title}>My List</Text>
-                </View>
-                <View style={styles.optionsSection}>
-                    <Text style={styles.optionsText}>O</Text>
-                </View>
+        listData ? <View style={styles.toDoContainer}>
+        <View style={styles.header}>
+            <View style={styles.navSection}>
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => router.replace('/ListManager')}
+                >
+                    <Text style={styles.backButtonText}>{" < Back"}</Text>
+                </TouchableOpacity>
             </View>
-            <View style={styles.body}>
-                <View style={styles.bodyTitleSection}>
-                    <Title style={styles.bodyTitle}>Items</Title>
-                </View>
-                <View style={styles.bodyList}>
-                    <RenderFlatListView/>
-                    {isAddFieldOpen ? 
-                    <NewListItemField/> : null}
-                    <ListShare/>
-                </View>
+            <View style={styles.headerSection}>
+                <Text style={styles.title}>{listData.title}</Text>
             </View>
-            <View style={styles.footer}></View>
-            <AddItemButton/>
-            {/* {isAddFieldOpen ? <ListModal/> : null} */}
+            <View style={styles.optionsSection}>
+                <Text style={styles.optionsText}>O</Text>
+            </View>
         </View>
+        <View style={styles.body}>
+            <View style={styles.bodyTitleSection}>
+                <Title style={styles.bodyTitle}>Items</Title>
+            </View>
+            <View style={styles.bodyList}>
+                <RenderFlatListView/>
+                {isAddFieldOpen ? 
+                <NewListItemField/> : null}
+                <ListShare/>
+            </View>
+        </View>
+        <View style={styles.footer}></View>
+        <AddItemButton/>
+    </View> : null
     )
 }
 
@@ -284,7 +286,8 @@ const styles = StyleSheet.create({
         marginLeft:20,
         fontWeight:700,
         marginTop:15,
-        height:50
+        height:50,
+        paddingTop:5
     },
     listItemWrapper:{
         width:'93%',

@@ -23,7 +23,11 @@ export default function RootLayout() {
           <Stack.Screen name="auth/login/index" />
           <Stack.Screen
             name="ListManager/index"
-            options={{ title: "List Manager", headerShown: true }}
+            options={{ title: "List Manager", headerShown: false }}
+          />
+          <Stack.Screen
+            name="ToDoManager/index"
+            options={{ title: "To Do List", headerShown: false }}
           />
         </Stack>
       </AuthGuard>
