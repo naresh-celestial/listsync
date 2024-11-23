@@ -1,13 +1,12 @@
 import { Text, View, StyleSheet,TouchableOpacity, Pressable, FlatList, Image, TextInput, ToastAndroid } from "react-native";
 import { Title } from "react-native-paper";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useNavigation } from "expo-router";
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const ToDoManager = () => {
-    const item = useLocalSearchParams();
     //hooks
-    const [listData, setListData] = useState(item);
+    const [listData, setListData] = useState();
     //router
     const router = useRouter();
 
@@ -16,11 +15,35 @@ const ToDoManager = () => {
     // {id: 1, title:'First List', description:'This is the first item in the list'},
     //     {id: 2, title:'Second List', description:'This is the second item in the list'},
     const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
+    //Search
+    const [isSearchEnabled, setIsSerchEnabled] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
 
     //Controller functions
     const addItems = () => {
         setIsAddFieldOpen(!isAddFieldOpen);
     }
+
+    //Search
+    const enableSearch = () => {
+        setIsSerchEnabled(!isSearchEnabled);
+        console.log('search')
+    }
+
+    const SearchBar = () => {
+        return (
+            <View style={styles.searchBar}>
+                <TextInput
+                    autoFocus
+                    placeholderTextColor="#fff"
+                    style={styles.serchField}
+                    placeholder="Search Items"
+                    value={searchQuery}
+                    onChangeText={value => setSearchQuery(value)}
+                />
+            </View>
+        )
+    } 
 
     //Components
     //Floating Add Item Button
@@ -32,6 +55,33 @@ const ToDoManager = () => {
 
     //List Items
     const FlatListItem = ({id, title, description}) => {
+        const [itemTitle, setItemTitle] = useState(title);
+        const [itemDescription, setItemDescription] = useState(description);
+        const [isFieldsEditable, setisFieldsEditable] = useState(false);
+
+        const editSaveToggle = () => {
+            setisFieldsEditable(!isFieldsEditable);
+        }
+
+        const saveItem = (id) => {
+            // Find the this item from the items and update the details
+            let existingitems = listData;
+            let thisItem = existingitems.data.find((items) => items.id === id);
+            thisItem.title = itemTitle;
+            thisItem.description = itemDescription;
+
+            //Get index of this item in the list
+            const findObject = (listItem) => {
+                return listItem === thisItem;
+            }
+            let indexOfSelectedList = existingitems.data.findIndex(findObject);
+            existingitems.data[indexOfSelectedList] = thisItem;
+
+            //Save to Local Storage
+            setToLocalStorage(existingitems.data, existingitems);
+            editSaveToggle();
+        }
+
         const deleteItem = (id) => {
             let tempList = [...listData.data];
             if(tempList.length == 1) {
@@ -40,16 +90,23 @@ const ToDoManager = () => {
                 tempList.splice(id - 1, 1);
                 setListData(listData => ({...listData, data:tempList}));
             }
+            setToLocalStorage(tempList, listData);
         }
         return (
-            <View style={styles.listItemWrapper}>
+            <View style={[styles.listItemWrapper, isFieldsEditable ? styles.onEditlistItem : ""]}>
                 <View style={styles.textSection}>
-                    <Text style={styles.listItemTitle}>
-                        {title}
-                    </Text>
-                    <Text style={styles.listItemDescription}>
-                        {description}
-                    </Text>
+                    <TextInput
+                        style={[styles.listItemTitle]}
+                        editable={isFieldsEditable}
+                        value={itemTitle}
+                        onChangeText={setItemTitle}
+                    />
+                    <TextInput
+                        style={[styles.listItemDescription]}
+                        editable={isFieldsEditable}
+                        value={itemDescription}
+                        onChangeText={setItemDescription}
+                    />
                 </View>
                 <View style={styles.actionsSection}>
                     <TouchableOpacity onPress={() => deleteItem(id)} style={styles.editIconWrapper}>
@@ -58,6 +115,20 @@ const ToDoManager = () => {
                             source={require('../../assets/images/delete.png')}
                         />
                     </TouchableOpacity>
+                    {!isFieldsEditable ? 
+                    <TouchableOpacity onPress={() => editSaveToggle()} style={styles.editIconWrapper}>
+                        <Image
+                            style={styles.editIcon}
+                            source={require('../../assets/images/pencil.png')}
+                        />
+                    </TouchableOpacity> : 
+                    <TouchableOpacity onPress={() => saveItem(id)} style={styles.editIconWrapper}>
+                        <Image
+                            style={styles.editIcon}
+                            source={require('../../assets/images/tick.png')}
+                        />
+                    </TouchableOpacity>
+                    }
                 </View>
             </View>
         )
@@ -65,7 +136,16 @@ const ToDoManager = () => {
     const RenderFlatListView = () => {
         if(listData.data.length !== 0) {
             return <FlatList 
-                data={listData.data} 
+                data={listData.data.filter((items) => {
+                    for(let key in items) {
+                        if(key === "title") {
+                            if(items[key].toLowerCase().includes(searchQuery.toLocaleLowerCase())) {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                })} 
                 renderItem={(item) => {
                    return <FlatListItem id={item.item.id} title={item.item.title} description={item.item.description}/>
                 }}
@@ -91,7 +171,6 @@ const ToDoManager = () => {
 
         const addItem = (title, description) => {
             if(isFieldValid()) {
-                console.log('94',typeof listData.data)
                 let existingListCopy = [...listData.data];
                 let itemObject = {
                     id:existingListCopy.length + 1,
@@ -100,14 +179,8 @@ const ToDoManager = () => {
                 }
                 existingListCopy.push(itemObject);
                 setListData(listData => ({...listData, data:existingListCopy}));
-                modalHandler();    
-            } else {
-                modalHandler();
-            }
-        }
-
-        const modalHandler = () => {
-            setIsAddFieldOpen(!isAddFieldOpen);
+                setToLocalStorage(existingListCopy, listData);
+            } 
         }
 
         return (
@@ -151,24 +224,30 @@ const ToDoManager = () => {
 
     //Local Storage
     //Set to Local Storage
-    const setToLocalStorage = async (list) => {
+    const setToLocalStorage = async (list, listMetaData) => {
         try{
+            //All Lists
             const storedTodos = await AsyncStorage.getItem("todos");
             let parsedAllData = JSON.parse(storedTodos);
-            
-            const {id, data} = list;
+
+            //this list meta data
+            const {id} = listMetaData;
+
+            //Find "this" list from all lists
             let selectedData = parsedAllData.find((item) => item.id === id);
-            selectedData.data = data;
+
+            //Set the current items to list
+            selectedData.data = list;
             
+            //Get this list index from all lists
             const findObject = (listItem) => {
                 return listItem === selectedData;
             }
             let indexOfSelectedList = parsedAllData.findIndex(findObject);
             parsedAllData[indexOfSelectedList] = selectedData;
 
-            console.log('168',parsedAllData);
-
             await AsyncStorage.setItem("todos", JSON.stringify(parsedAllData));
+            console.log('Saved to local!')
         } catch(err) {
             console.log(err);
         }
@@ -177,25 +256,25 @@ const ToDoManager = () => {
     //Get from Local Storage
     const getFromLocalStorage = async () => {
         try {
-            let storedList = await AsyncStorage.getItem('mylist');
-            if(storedList !== null) {
-                console.log('163',typeof storedList);
-                setMyList(JSON.parse(storedList));
+            let storedList = await AsyncStorage.getItem('selectedList');
+            if(storedList) {
+                setListData(JSON.parse(storedList));
             } else {
-                setMyList([]);
-                console.log('empty');
+                setListData(null);
             }
         } catch(err) {
             console.log(err);
         }
     }
-
-    //Side effect on every item change
+    
+    //Component on-mount
     useEffect(() => {
-        if(listData) {
-            setToLocalStorage(listData);
+        try {
+            getFromLocalStorage();
+        } catch(err) {
+            console.log(err);
         }
-    }, [listData])
+    }, [])
 
     return (
         listData ? <View style={styles.toDoContainer}>
@@ -218,8 +297,14 @@ const ToDoManager = () => {
         <View style={styles.body}>
             <View style={styles.bodyTitleSection}>
                 <Title style={styles.bodyTitle}>Items</Title>
+                <Pressable 
+                    onPress={() => enableSearch()} 
+                    style={styles.searchButton}>
+                    <Image source={require('../../assets/images/search.png')} style={styles.searchIcon}/>
+                </Pressable>
             </View>
             <View style={styles.bodyList}>
+                {isSearchEnabled ? <SearchBar/> : null}
                 <RenderFlatListView/>
                 {isAddFieldOpen ? 
                 <NewListItemField/> : null}
@@ -279,7 +364,42 @@ const styles = StyleSheet.create({
     },
     bodyTitleSection:{
         height:50,
-        marginTop:15,
+        marginBottom:10,
+        paddingRight:20,
+        display:'flex',
+        flexDirection:'row',
+        alignItems:'center',
+        justifyContent:'space-between'
+    },
+    searchButton:{
+        width:30,
+        height:30,
+        borderRadius:15,
+        marginTop:5,
+        display:'flex',
+        alignItems:'center',
+        justifyContent:'center',
+    },
+    searchIcon:{
+        width:25,
+        height:25,
+        marginTop:5,
+        marginBottom:15
+    },
+    searchBar:{
+        width:"100%",
+        height:50,
+        marginTop:-20,
+        padding:10,
+        marginBottom:5
+    },
+    serchField:{
+        width:'100%',
+        height:35,
+        backgroundColor:'#333333',
+        paddingLeft:10,
+        borderRadius:10,
+        color:'white'
     },
     bodyTitle:{
         fontSize:35,
@@ -291,15 +411,20 @@ const styles = StyleSheet.create({
     },
     listItemWrapper:{
         width:'93%',
+        height:55,
         display:'flex',
         flexDirection:'row',
         alignItems:'start',
         justifyContent:'center',
         marginLeft:15,
-        borderBottomWidth:1,
-        borderColor:'#D3D3D3',
-        borderOpacity:3,
-        padding:5
+        backgroundColor:'white',
+        borderRadius:10,
+        margin:2,
+        paddingLeft:15,
+    },
+    onEditlistItem:{
+        borderWidth:1,
+        borderStyle:'dashed'
     },
     editIcon:{
         width:25,
@@ -312,8 +437,10 @@ const styles = StyleSheet.create({
     actionsSection:{
         flex:0.1,
         display:'flex',
+        flexDirection:'row',
         alignItems:'center',
         justifyContent:'center',
+        marginRight:30
     },
     editIconWrapper:{
         width:35,
@@ -326,11 +453,13 @@ const styles = StyleSheet.create({
     listItemTitle:{
         color:'black',
         fontWeight:"700",
-        fontSize:18
+        fontSize:18,
+        height:30
     },
     listItemDescription:{
         color:'grey',
-        fontSize:14
+        fontSize:14,
+        marginTop:-5
     },
     shareContainer:{
         width:'100%',

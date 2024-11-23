@@ -10,7 +10,7 @@ const AddTodo = () => {
 
   const saveTodo = async () => {
     const storedTodos = await AsyncStorage.getItem("todos");
-    const todos = storedTodos ? JSON.parse(storedTodos) : [];
+    let todos = storedTodos ? JSON.parse(storedTodos) : [];
     const newTodo = { 
       id: Date.now().toString(), 
       title, 
@@ -18,8 +18,16 @@ const AddTodo = () => {
       data:[]
     };
 
-    const updatedTodos = [...todos, newTodo];
-    await AsyncStorage.setItem("todos", JSON.stringify(updatedTodos));
+    // console.log('21',typeof newTodo.data);
+
+    if(todos.length !== 0) {
+      todos.push(newTodo)
+    } else {
+      todos = [newTodo];
+    }
+
+    // const updatedTodos = [...todos, newTodo];
+    await AsyncStorage.setItem("todos", JSON.stringify(todos));
     router.back(); // Go back to the list after saving
   };
 

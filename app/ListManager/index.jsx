@@ -14,7 +14,6 @@ const TodoList = () => {
   const loadTodos = async () => {
     const storedTodos = await AsyncStorage.getItem("todos");
     if (storedTodos) {
-      console.log('17',storedTodos);
       setTodos(JSON.parse(storedTodos));
     }
   };
@@ -49,12 +48,19 @@ const TodoList = () => {
     setVisibleMenu(null);
   };
 
-  const goToListItems = (data) => {
-    router.push({pathname: '/ToDoManager', params: data})
+  const goToListItems = async (data) => {
+    try {
+      await AsyncStorage.setItem("selectedList", JSON.stringify(data));
+      router.push({pathname: '/ToDoManager'})
+    } catch(err) {
+      console.log(err);
+    }
   }
 
   const renderTodoItem = ({ item }) => (
-    <Card style={styles.card} onPress={() => goToListItems(item)}>
+    <Card 
+      style={styles.card} 
+      onPress={() => goToListItems(item)}>
       <View style={styles.cardContent}>
         <Text style={styles.todoText}>{item.title}</Text>
         {/* <Text style={styles.todoText}>{item.notes}</Text> */}
@@ -82,8 +88,6 @@ const TodoList = () => {
     }, [])
   );
 
-  console.log("todos", todos);
-
   return (
     <View style={styles.container}>
       {/* <View style={styles.header}>
@@ -101,11 +105,14 @@ const TodoList = () => {
         <View style={styles.bodyTitleSection}>
             <Title style={styles.bodyTitle}>My Lists</Title>
         </View>
+        {todos.length !== 0 ?
         <FlatList
           data={todos}
           keyExtractor={(item) => item.id}
           renderItem={renderTodoItem}
-        />
+        /> :  (
+          <Text style={styles.emptyListText}>No Items in the list.</Text>
+        )}
         <Button
           mode="contained"
           style={styles.addButton}
@@ -152,13 +159,13 @@ const styles = StyleSheet.create({
       flex:1
   },
   optionsSection:{
-      flex:1,
-      marginRight:10,
-      color:"black",
-      opacity:0
+    flex:1,
+    marginRight:10,
+    color:"black",
+    opacity:0
   },
   optionsText:{
-      textAlign:'right',
+    textAlign:'right',
   },
   body:{
     flex:0.9,
@@ -167,8 +174,9 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 0,
     height:60,
-    borderColor:'black',
-    borderWidth:1,
+    backgroundColor:'white',
+    borderRadius:10,
+    margin:2
   },
   cardContent: {
     flexDirection: "row",
@@ -185,6 +193,9 @@ const styles = StyleSheet.create({
     marginTop: 20,
     backgroundColor:'#007BFF',
     borderRadius:10
+  },
+  emptyListText:{
+    textAlign:'center'
   },
 });
 
