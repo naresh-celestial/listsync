@@ -1,5 +1,13 @@
 import React, { useState, useCallback } from "react";
-import { View, Text, FlatList, Share, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  Share,
+  StyleSheet,
+  TouchableOpacity,
+  Linking,
+} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Card, IconButton, Menu, Button } from "react-native-paper";
 import { useRouter } from "expo-router";
@@ -40,6 +48,10 @@ const TodoList = () => {
     }
   };
 
+  const emailShare = (content) => {
+    Linking.openURL("mailto:support@example.com", (title = { content }));
+  };
+
   const openMenu = (id) => {
     setVisibleMenu(id);
   };
@@ -51,16 +63,14 @@ const TodoList = () => {
   const goToListItems = async (data) => {
     try {
       await AsyncStorage.setItem("selectedList", JSON.stringify(data));
-      router.push({pathname: '/ToDoManager'})
-    } catch(err) {
+      router.push({ pathname: "/ToDoManager" });
+    } catch (err) {
       console.log(err);
     }
-  }
+  };
 
   const renderTodoItem = ({ item }) => (
-    <Card 
-      style={styles.card} 
-      onPress={() => goToListItems(item)}>
+    <Card style={styles.card} onPress={() => goToListItems(item)}>
       <View style={styles.cardContent}>
         <Text style={styles.todoText}>{item.title}</Text>
         {/* <Text style={styles.todoText}>{item.notes}</Text> */}
@@ -76,7 +86,15 @@ const TodoList = () => {
         >
           <Menu.Item onPress={() => handleEdit(item.id)} title="Edit" />
           <Menu.Item onPress={() => handleDelete(item.id)} title="Delete" />
-          <Menu.Item onPress={() => handleShare(item.text)} title="Share" />
+          {/* <Menu.Item
+            onPress={() => handleShare(JSON.stringify(item))}
+            title="Share"
+          />
+        </Menu> */}
+          <Menu.Item
+            onPress={() => emailShare(JSON.stringify(item))}
+            title="Share"
+          />
         </Menu>
       </View>
     </Card>
@@ -103,14 +121,15 @@ const TodoList = () => {
       </View> */}
       <View style={styles.body}>
         <View style={styles.bodyTitleSection}>
-            <Title style={styles.bodyTitle}>My Lists</Title>
+          <Title style={styles.bodyTitle}>My Lists</Title>
         </View>
-        {todos.length !== 0 ?
-        <FlatList
-          data={todos}
-          keyExtractor={(item) => item.id}
-          renderItem={renderTodoItem}
-        /> :  (
+        {todos.length !== 0 ? (
+          <FlatList
+            data={todos}
+            keyExtractor={(item) => item.id}
+            renderItem={renderTodoItem}
+          />
+        ) : (
           <Text style={styles.emptyListText}>No Items in the list.</Text>
         )}
         <Button
@@ -131,52 +150,52 @@ const styles = StyleSheet.create({
     padding: 20,
     fontFamily: "Rubik",
   },
-  header:{
-    flex:0.05,
-    display:'flex',
-    flexDirection:'row',
-    alignItems:'center',
-    justifyContent:"center",
+  header: {
+    flex: 0.05,
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  navSection:{
-      flex:1
+  navSection: {
+    flex: 1,
   },
-  title:{
-      color:'black',
-      fontWeight:'600',
-      fontSize:18,
-      textAlign:'center',
+  title: {
+    color: "black",
+    fontWeight: "600",
+    fontSize: 18,
+    textAlign: "center",
   },
-  bodyTitle:{
-    fontSize:35,
-    marginLeft:5,
-    fontWeight:700,
-    marginTop:15,
-    paddingTop:5,
-    height:50,
+  bodyTitle: {
+    fontSize: 35,
+    marginLeft: 5,
+    fontWeight: 700,
+    marginTop: 15,
+    paddingTop: 5,
+    height: 50,
   },
-  headerSection:{
-      flex:1
+  headerSection: {
+    flex: 1,
   },
-  optionsSection:{
-    flex:1,
-    marginRight:10,
-    color:"black",
-    opacity:0
+  optionsSection: {
+    flex: 1,
+    marginRight: 10,
+    color: "black",
+    opacity: 0,
   },
-  optionsText:{
-    textAlign:'right',
+  optionsText: {
+    textAlign: "right",
   },
-  body:{
-    flex:0.9,
-    marginTop:10
+  body: {
+    flex: 0.9,
+    marginTop: 10,
   },
   card: {
     borderRadius: 0,
-    height:60,
-    backgroundColor:'white',
-    borderRadius:10,
-    margin:2
+    height: 60,
+    backgroundColor: "white",
+    borderRadius: 10,
+    margin: 2,
   },
   cardContent: {
     flexDirection: "row",
@@ -191,11 +210,11 @@ const styles = StyleSheet.create({
   },
   addButton: {
     marginTop: 20,
-    backgroundColor:'#007BFF',
-    borderRadius:10
+    backgroundColor: "#007BFF",
+    borderRadius: 10,
   },
-  emptyListText:{
-    textAlign:'center'
+  emptyListText: {
+    textAlign: "center",
   },
 });
 

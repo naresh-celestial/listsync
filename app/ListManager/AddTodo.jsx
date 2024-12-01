@@ -10,18 +10,24 @@ const AddTodo = () => {
 
   const saveTodo = async () => {
     const storedTodos = await AsyncStorage.getItem("todos");
+    const savedUser = await AsyncStorage.getItem("user");
+    console.log("14", savedUser);
+    let userObject = JSON.parse(savedUser);
+
     let todos = storedTodos ? JSON.parse(storedTodos) : [];
-    const newTodo = { 
-      id: Date.now().toString(), 
-      title, 
-      notes, 
-      data:[]
+    const newTodo = {
+      id: Date.now().toString(),
+      title,
+      notes,
+      data: [],
+      admin: userObject.email,
+      collaborators: [userObject.email],
     };
 
-    // console.log('21',typeof newTodo.data);
+    console.log("27", newTodo);
 
-    if(todos.length !== 0) {
-      todos.push(newTodo)
+    if (todos.length !== 0) {
+      todos.push(newTodo);
     } else {
       todos = [newTodo];
     }
@@ -56,7 +62,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    marginTop:10
+    marginTop: 10,
   },
   input: {
     height: 40,

@@ -9,28 +9,40 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
 
-  const handleLogin = () => {
-    // if (email && password) {
-      // console.log("Logging in", email, password);
+  const saveUserLogin = async (userLogin) => {
+    if (userLogin) {
+      console.log("user login", userLogin);
+      await AsyncStorage.setItem("user", JSON.stringify(userLogin));
+    }
+  };
 
-      // navigation.navigate("ToDo"); // Replace so user can’t go back to login
-      router.replace("/TodoList")
-    // } else {
-    //   alert("Please enter credentials");
-    // }
+  const handleLogin = async () => {
+    try {
+      if (email && password) {
+        // console.log("Logging in", email, password);
+        await saveUserLogin({ email: email, password: password });
+        // navigation.navigate("ToDo"); // Replace so user can’t go back to login
+        router.replace("ListManager");
+      } else {
+        alert("Please enter credentials");
+      }
+    } catch (err) {
+      console.log(err);
+    }
   };
 
   return (
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.backButton}
-        onPress={() => router.replace('/auth/WelcomeScreen')}
+        onPress={() => router.replace("auth/WelcomeScreen")}
       >
         <Text style={styles.backButtonText}>{"< Back"}</Text>
       </TouchableOpacity>
@@ -48,7 +60,7 @@ const LoginScreen = () => {
         secureTextEntry
         style={styles.input}
       />
-      <Button title="Login" onPress={handleLogin}/>
+      <Button title="Login" onPress={handleLogin} />
     </View>
   );
 };

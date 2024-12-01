@@ -19,6 +19,7 @@ export default function RootLayout() {
       <AuthGuard>
         {/* Use Expo Router's Stack for navigation */}
         <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="auth/WelcomeScreen/index" />
           <Stack.Screen name="index" />
           <Stack.Screen name="auth/login/index" />
           <Stack.Screen
