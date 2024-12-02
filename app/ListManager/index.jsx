@@ -52,6 +52,11 @@ const TodoList = () => {
     Linking.openURL("mailto:support@example.com", (title = { content }));
   };
 
+  const viewCollaborators = (list) => {
+    closeMenu;
+    router.push(`/ListManager/Collaborators?list=${list}`);
+  };
+
   const openMenu = (id) => {
     setVisibleMenu(id);
   };
@@ -62,8 +67,8 @@ const TodoList = () => {
 
   const goToListItems = async (data) => {
     try {
-      await AsyncStorage.setItem("selectedList", JSON.stringify(data));
-      router.push({ pathname: "/ToDoManager" });
+      let stringData = JSON.stringify(data);
+      router.push(`/ToDoManager?item=${stringData}`);
     } catch (err) {
       console.log(err);
     }
@@ -86,14 +91,13 @@ const TodoList = () => {
         >
           <Menu.Item onPress={() => handleEdit(item.id)} title="Edit" />
           <Menu.Item onPress={() => handleDelete(item.id)} title="Delete" />
-          {/* <Menu.Item
-            onPress={() => handleShare(JSON.stringify(item))}
-            title="Share"
-          />
-        </Menu> */}
           <Menu.Item
             onPress={() => emailShare(JSON.stringify(item))}
             title="Share"
+          />
+          <Menu.Item
+            onPress={() => viewCollaborators(JSON.stringify(item))}
+            title="View Collaborators"
           />
         </Menu>
       </View>

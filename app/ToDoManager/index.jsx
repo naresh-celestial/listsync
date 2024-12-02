@@ -8,17 +8,29 @@ import {
   Image,
   TextInput,
   ToastAndroid,
+  ScrollView,
 } from "react-native";
-import { IconButton, Menu, Title } from "react-native-paper";
+import {
+  IconButton,
+  Menu,
+  Title,
+  Card,
+  Divider,
+  PaperProvider,
+  Checkbox,
+} from "react-native-paper";
 import { useRouter, useLocalSearchParams, useNavigation } from "expo-router";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LongPressGestureHandler } from "react-native-gesture-handler";
 
 const ToDoManager = () => {
-  //hooks
-  const [listData, setListData] = useState();
   //router
   const router = useRouter();
+  const searchParams = useLocalSearchParams();
+  const itemsData = searchParams.item; // Access id directly if available
+  //hooks
+  const [listData, setListData] = useState(JSON.parse(itemsData));
 
   //state
   const [myList, setMyList] = useState([]);
@@ -37,7 +49,6 @@ const ToDoManager = () => {
   //Search
   const enableSearch = () => {
     setIsSerchEnabled(!isSearchEnabled);
-    console.log("search");
   };
 
   const SearchBar = () => {
@@ -66,7 +77,11 @@ const ToDoManager = () => {
   };
 
   //List Items
-  const FlatListItem = ({ id, title, description, favourite, category }) => {
+  const [isSelectionOn, setIsSectionOn] = useState(false);
+  const [allItems, setAllItems] = useState([]);
+  const [selectedItems, setSelectedItems] = useState([]);
+  const FlatListItem = ({ item }) => {
+    const { id, title, description, favourite, category, author } = item;
     const [itemTitle, setItemTitle] = useState(title);
     const [itemDescription, setItemDescription] = useState(description);
     const [isFieldsEditable, setisFieldsEditable] = useState(false);
@@ -76,44 +91,39 @@ const ToDoManager = () => {
     const [itemCategory, setItemCategory] = useState(
       category !== undefined ? category : "No Category"
     );
-    const [itemAuthor, setItemAuthor] = useState("");
+    const [itemAuthor, setItemAuthor] = useState(author);
+    const [checked, setChecked] = useState(selectedItems.includes(item));
+
+    //Add all items to separate list
+    const addAllItemsToList = () => {
+      let allItemsTemp = allItems;
+      allItemsTemp.push(item);
+      setAllItems(allItemsTemp);
+    };
+    addAllItemsToList();
 
     const editSaveToggle = () => {
       setisFieldsEditable(!isFieldsEditable);
     };
 
-    const getAuthor = async () => {
-      const user = await AsyncStorage.getItem("user");
-      let userObject = JSON.parse(user);
-      return userObject;
-      //   setItemAuthor(userObject.email);
-    };
-
     const saveItem = (id) => {
-      try {
-        let author = getAuthor();
-        // console.log("95", author);
-        // Find the this item from the items and update the details
-        let existingitems = listData;
-        let thisItem = existingitems.data.find((items) => items.id === id);
-        thisItem.title = itemTitle;
-        thisItem.description = itemDescription;
-        thisItem.category = itemCategory;
-        thisItem.author = itemAuthor;
+      // Find the this item from the items and update the details
+      let existingitems = listData;
+      let thisItem = existingitems.data.find((items) => items.id === id);
+      thisItem.title = itemTitle;
+      thisItem.description = itemDescription;
+      thisItem.category = itemCategory;
 
-        //Get index of this item in the list
-        const findObject = (listItem) => {
-          return listItem === thisItem;
-        };
-        let indexOfSelectedList = existingitems.data.findIndex(findObject);
-        existingitems.data[indexOfSelectedList] = thisItem;
+      //Get index of this item in the list
+      const findObject = (listItem) => {
+        return listItem === thisItem;
+      };
+      let indexOfSelectedList = existingitems.data.findIndex(findObject);
+      existingitems.data[indexOfSelectedList] = thisItem;
 
-        //Save to Local Storage
-        setToLocalStorage(existingitems.data, existingitems);
-        editSaveToggle();
-      } catch (err) {
-        console.log("err");
-      }
+      //Save to Local Storage
+      setToLocalStorage(existingitems.data, existingitems);
+      editSaveToggle();
     };
 
     const deleteItem = (id) => {
@@ -146,97 +156,137 @@ const ToDoManager = () => {
       setToLocalStorage(existingitems.data, existingitems);
     };
 
+    const onLongPress = () => {
+      if (isSelectionOn == false) {
+        setIsSectionOn(true);
+      }
+    };
+
+    const selectItem = (item) => {
+      let templist = selectedItems;
+      let tempCheck = !checked;
+      if (tempCheck) {
+        templist.push(item);
+      } else {
+        //Get this list index from all lists
+        const findObject = (listItem) => {
+          return listItem === item;
+        };
+        let indexOfSelectedList = templist.findIndex(findObject);
+        templist.splice(indexOfSelectedList, 1);
+      }
+      console.log("all item", templist);
+      setSelectedItems(templist);
+      setChecked(!checked);
+    };
+
     return (
-      <View
-        style={[
-          styles.listItemWrapper,
-          isFieldsEditable
-            ? styles.listItemEditable
-            : styles.listItemUnEditable,
-          isFieldsEditable ? styles.onEditlistItem : "",
-        ]}
-      >
-        <View style={styles.textSection}>
-          <TextInput
-            style={[styles.listItemTitle]}
-            editable={isFieldsEditable}
-            value={itemTitle}
-            onChangeText={setItemTitle}
-          />
-          <TextInput
-            style={[styles.listItemDescription]}
-            editable={isFieldsEditable}
-            value={itemDescription}
-            onChangeText={setItemDescription}
-          />
-          <Text style={styles.authorTitle}>
-            Author - {itemAuthor.length == 0 ? "unknown" : itemAuthor}
-          </Text>
-          {isFieldsEditable ? (
-            <View style={styles.categoryContainer}>
-              <Image
-                style={styles.labelIcon}
-                source={require("../../assets/images/tag.png")}
-              />
-              <TextInput
-                style={[styles.listCategoryTitle]}
-                editable={isFieldsEditable}
-                placeholder={itemCategory}
-                value={itemCategory}
-                onChangeText={setItemCategory}
+      <Pressable onLongPress={onLongPress}>
+        <View
+          style={[
+            styles.listItemWrapper,
+            isFieldsEditable
+              ? styles.listItemEditable
+              : styles.listItemUnEditable,
+            isFieldsEditable ? styles.onEditlistItem : "",
+          ]}
+        >
+          {isSelectionOn ? (
+            <View style={styles.selectionSection}>
+              <Checkbox
+                color="#007BFF"
+                status={checked ? "checked" : "unchecked"}
+                onPress={() => selectItem(item)}
               />
             </View>
           ) : null}
-        </View>
-        <View style={styles.actionsSection}>
-          <TouchableOpacity
-            onPress={() => setFavouriteItem(id)}
-            style={styles.editIconWrapper}
-          >
-            {isItemFavourite ? (
-              <Image
-                style={styles.editIcon}
-                source={require("../../assets/images/starFilled.png")}
-              />
-            ) : (
-              <Image
-                style={[styles.editIcon, styles.unFilledStar]}
-                source={require("../../assets/images/starUnFilled.png")}
-              />
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => deleteItem(id)}
-            style={styles.editIconWrapper}
-          >
-            <Image
-              style={styles.editIcon}
-              source={require("../../assets/images/delete.png")}
+          <View style={styles.textSection}>
+            <TextInput
+              style={[styles.listItemTitle]}
+              editable={isFieldsEditable}
+              value={itemTitle}
+              onChangeText={setItemTitle}
             />
-          </TouchableOpacity>
-          {!isFieldsEditable ? (
+            <TextInput
+              style={[styles.listItemDescription]}
+              editable={isFieldsEditable}
+              value={itemDescription}
+              onChangeText={setItemDescription}
+            />
+            <Text style={styles.authorTitle}>
+              Author - {itemAuthor?.length == 0 ? "unknown" : itemAuthor}
+            </Text>
+            {isFieldsEditable ? (
+              <View style={styles.categoryContainer}>
+                <Image
+                  style={styles.labelIcon}
+                  source={require("../../assets/images/tag.png")}
+                />
+                <TextInput
+                  style={[styles.listCategoryTitle]}
+                  editable={isFieldsEditable}
+                  placeholder={itemCategory}
+                  value={itemCategory}
+                  onChangeText={setItemCategory}
+                />
+              </View>
+            ) : null}
+          </View>
+          <View
+            style={[
+              styles.actionsSection,
+              isSelectionOn ? styles.nonSelectable : "",
+            ]}
+          >
             <TouchableOpacity
-              onPress={() => editSaveToggle()}
+              onPress={() => setFavouriteItem(id)}
+              style={styles.editIconWrapper}
+            >
+              {isItemFavourite ? (
+                <Image
+                  style={styles.editIcon}
+                  source={require("../../assets/images/starFilled.png")}
+                />
+              ) : (
+                <Image
+                  style={[styles.editIcon, styles.unFilledStar]}
+                  source={require("../../assets/images/starUnFilled.png")}
+                />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => deleteItem(id)}
               style={styles.editIconWrapper}
             >
               <Image
                 style={styles.editIcon}
-                source={require("../../assets/images/pencil.png")}
+                source={require("../../assets/images/delete.png")}
               />
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              onPress={() => saveItem(id)}
-              style={styles.editIconWrapper}
-            >
-              <Image
-                style={styles.editIcon}
-                source={require("../../assets/images/tick.png")}
-              />
-            </TouchableOpacity>
-          )}
+            {!isFieldsEditable ? (
+              <TouchableOpacity
+                onPress={() => editSaveToggle()}
+                style={styles.editIconWrapper}
+              >
+                <Image
+                  style={styles.editIcon}
+                  source={require("../../assets/images/pencil.png")}
+                />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={() => saveItem(id)}
+                style={styles.editIconWrapper}
+              >
+                <Image
+                  style={styles.editIcon}
+                  source={require("../../assets/images/tick.png")}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-      </View>
+      </Pressable>
     );
   };
   const groupCategory = (list) => {
@@ -275,18 +325,12 @@ const ToDoManager = () => {
                 }
                 return false;
               })}
+              contentContainerStyle={styles.flatListStyles}
               renderItem={(item) => {
-                return (
-                  <FlatListItem
-                    id={item.item.id}
-                    title={item.item.title}
-                    description={item.item.description}
-                    favourite={item.item.favourite}
-                    category={item.item.category}
-                  />
-                );
+                return <FlatListItem item={item.item} />;
               }}
               keyExtractor={(item) => item.id}
+              alwaysBounceVertical
             />
           </View>
         );
@@ -294,12 +338,12 @@ const ToDoManager = () => {
     } else {
       return <Text style={styles.emptyListText}>No Items in the list.</Text>;
     }
-  }, [listData]);
+  }, [listData, isSelectionOn, selectedItems]);
 
   const NewListItemField = () => {
     const [itemTitle, onTitleChange] = useState("");
     const [itemDescription, onDescriptionChange] = useState("");
-
+    const [itemAuthor, setItemAuthor] = useState("");
     const isFieldValid = () => {
       if (itemTitle.length !== 0) {
         return true;
@@ -308,19 +352,35 @@ const ToDoManager = () => {
       }
     };
 
+    const getAuthor = async () => {
+      const user = await AsyncStorage.getItem("user");
+      let userObject = JSON.parse(user);
+      setItemAuthor(userObject.email);
+    };
+
+    getAuthor();
+
     const addItem = (title, description) => {
-      if (isFieldValid()) {
-        let existingListCopy = [...listData.data];
-        let itemObject = {
-          id: existingListCopy.length + 1,
-          title: title,
-          description: description,
-          favourite: false,
-          category: "others",
-        };
-        existingListCopy.push(itemObject);
-        setListData((listData) => ({ ...listData, data: existingListCopy }));
-        setToLocalStorage(existingListCopy, listData);
+      try {
+        if (isFieldValid()) {
+          let existingListCopy = [...listData.data];
+          let itemObject = {
+            id: existingListCopy.length + 1,
+            title: title,
+            description: description,
+            favourite: false,
+            category: "others",
+            author: itemAuthor,
+          };
+          existingListCopy.push(itemObject);
+          setListData((listData) => ({
+            ...listData,
+            data: existingListCopy,
+          }));
+          setToLocalStorage(existingListCopy, listData);
+        }
+      } catch (err) {
+        console.log("err", err);
       }
     };
 
@@ -375,22 +435,56 @@ const ToDoManager = () => {
     );
   };
 
-  //List Options
-  const [visibleMenu, setVisibleMenu] = useState(null);
-  const openMenu = (id) => {
-    console.log("open menu");
-    setVisibleMenu(id);
-  };
-
-  const closeMenu = () => {
-    setVisibleMenu(null);
-  };
-
-  const deleteAllItems = () => {
-    setListData((listData) => ({ ...listData, data: [] }));
-  };
-
   const ListMenu = () => {
+    //List Options
+    const [visibleMenu, setVisibleMenu] = useState(null);
+    const openMenu = (id) => {
+      console.log("open menu");
+      setVisibleMenu(id);
+    };
+
+    const closeMenu = () => {
+      setVisibleMenu(null);
+    };
+
+    const deleteAllItems = () => {
+      setListData((listData) => ({ ...listData, data: [] }));
+    };
+
+    const cancelSelection = () => {
+      setIsSectionOn(false);
+    };
+
+    const selectAllItems = () => {
+      setSelectedItems(allItems);
+    };
+
+    const unSelectAllItems = () => {
+      setSelectedItems([]);
+    };
+
+    const invertSelection = () => {
+      let allItemsTemp = allItems;
+      let allSelectedItemsTemp = selectedItems;
+
+      allSelectedItemsTemp.forEach((item) => {
+        const findObject = (listItem) => {
+          return listItem === item;
+        };
+        let indexOfSelectedList = allItemsTemp.findIndex(findObject);
+        if (indexOfSelectedList) {
+          allSelectedItemsTemp.splice(indexOfSelectedList, 1);
+        }
+      });
+
+      setSelectedItems(allSelectedItemsTemp);
+    };
+
+    const deleteSelectedItems = () => {
+      //Dont delete any items for now.
+      console.log("452", selectedItems);
+    };
+
     return (
       <Menu
         visible={visibleMenu === listData.id}
@@ -402,7 +496,44 @@ const ToDoManager = () => {
           />
         }
       >
-        <Menu.Item onPress={() => deleteAllItems()} title="Delete All" />
+        {!isSelectionOn ? (
+          <Menu.Item
+            style={styles.options}
+            onPress={() => deleteAllItems()}
+            title="Delete All"
+          />
+        ) : (
+          <>
+            {selectedItems.length !== 0 ? (
+              <Menu.Item
+                style={styles.options}
+                onPress={deleteSelectedItems}
+                title="Delete"
+              />
+            ) : null}
+            <Menu.Item
+              style={styles.options}
+              onPress={selectAllItems}
+              title="Select All"
+            />
+            <Menu.Item
+              style={styles.options}
+              onPress={unSelectAllItems}
+              title="UnSelect All"
+            />
+            {/* <Menu.Item
+              style={styles.options}
+              onPress={invertSelection}
+              title="Invert Selection"
+            /> */}
+            <Divider />
+            <Menu.Item
+              style={styles.options}
+              onPress={cancelSelection}
+              title="Cancel"
+            />
+          </>
+        )}
       </Menu>
     );
   };
@@ -438,29 +569,6 @@ const ToDoManager = () => {
     }
   };
 
-  //Get from Local Storage
-  const getFromLocalStorage = async () => {
-    try {
-      let storedList = await AsyncStorage.getItem("selectedList");
-      if (storedList) {
-        setListData(JSON.parse(storedList));
-      } else {
-        setListData(null);
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-  //Component on-mount
-  useEffect(() => {
-    try {
-      getFromLocalStorage();
-    } catch (err) {
-      console.log(err);
-    }
-  }, []);
-
   return listData ? (
     <View style={styles.toDoContainer}>
       <View style={styles.header}>
@@ -485,16 +593,30 @@ const ToDoManager = () => {
             <Title style={styles.bodyTitle}>Items</Title>
           </View>
           <View style={styles.bodyTitleSectionRightSection}>
-            <Pressable
-              onPress={() => enableSearch()}
-              style={styles.searchButton}
-            >
-              <Image
-                source={require("../../assets/images/search.png")}
-                style={styles.searchIcon}
-              />
-            </Pressable>
+            {!isSelectionOn ? (
+              <Pressable
+                onPress={() => enableSearch()}
+                style={styles.searchButton}
+              >
+                <Image
+                  source={require("../../assets/images/search.png")}
+                  style={styles.searchIcon}
+                />
+              </Pressable>
+            ) : null}
             <ListMenu />
+            {/* <Menu
+              visible={visible}
+              onDismiss={closeMenu}
+              anchorPosition="bottom"
+              mode="elevated"
+              anchor={<IconButton icon="dots-vertical" onPress={openMenu} />}
+            >
+              <Menu.Item onPress={() => {}} title="Item 1" />
+              <Menu.Item onPress={() => {}} title="Item 2" />
+              <Divider />
+              <Menu.Item onPress={() => {}} title="Item 3" />
+            </Menu> */}
           </View>
         </View>
         <View style={styles.bodyList}>
@@ -625,14 +747,14 @@ const styles = StyleSheet.create({
     // height: 55,
   },
   authorTitle: {
-    fontSize: 12,
+    fontSize: 10,
     marginBottom: 5,
   },
   listItemWrapper: {
     display: "flex",
     flexDirection: "row",
     alignItems: "start",
-    justifyContent: "center",
+    justifyContent: "space-between",
     marginLeft: 15,
     backgroundColor: "white",
     borderRadius: 10,
@@ -650,8 +772,14 @@ const styles = StyleSheet.create({
   unFilledStar: {
     opacity: 0.3,
   },
+  selectionSection: {
+    flex: 0.1,
+    height: "100%",
+    display: "flex",
+    alignItems: "center",
+  },
   textSection: {
-    flex: 0.9,
+    flex: 0.8,
     height: "100%",
   },
   actionsSection: {
@@ -661,6 +789,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 50,
+  },
+  nonSelectable: {
+    userSelect: "none",
+    opacity: 0,
   },
   editIconWrapper: {
     width: 35,
@@ -826,6 +958,16 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "600",
     elevation: 2,
+  },
+  options: {
+    backgroundColor: "white",
+    borderRadius: 10,
+    margin: 5,
+  },
+  flatListStyles: {
+    overflow: "hidden",
+    // backgroundColor: "white",
+    alignItems: "center",
   },
 });
 
