@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { Title } from "react-native-paper";
 
 const Collaborators = () => {
   const searchParams = useLocalSearchParams();
@@ -26,17 +27,20 @@ const Collaborators = () => {
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <Text style={styles.backButtonText}>{" < Back"}</Text>
+            <Text style={styles.backButtonText}>{"Back"}</Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.headerSection}>
+        {/* <View style={styles.headerSection}>
           <Text style={styles.title}>{currentList.title}</Text>
         </View>
         <View style={styles.optionsSection}>
           <Text style={styles.optionsText}>O</Text>
-        </View>
+        </View> */}
       </View>
       <View style={styles.body}>
+        <View style={styles.bodyTitleSection}>
+          <Title style={styles.bodyTitle}>{currentList.title}</Title>
+        </View>
         <Text style={styles.textTitle}>Admin:</Text>
         <Text style={styles.textValue}>{currentList.admin}</Text>
         <View style={styles.seperator}></View>
@@ -57,7 +61,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    margin: 20,
+    fontFamily: "Rubik",
   },
   input: {
     height: 40,
@@ -82,12 +86,14 @@ const styles = StyleSheet.create({
   },
   navSection: {
     flex: 1,
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
   },
   backButtonText: {
     fontSize: 16,
     color: "#007BFF",
     fontWeight: "500",
-    marginLeft: 0,
     marginTop: 3,
   },
   title: {
@@ -114,10 +120,23 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   textValue: {
-    fontSize: 22,
+    backgroundColor: "white",
+    elevation: 2,
+    width: "100%",
+    padding: 15,
+    fontSize: 18,
+    borderRadius: 15,
+    marginTop: 5,
   },
   seperator: {
     height: 30,
+  },
+  bodyTitle: {
+    fontSize: 35,
+    fontWeight: 700,
+    marginTop: 0,
+    paddingTop: 5,
+    height: 50,
   },
 });
 

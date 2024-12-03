@@ -1,7 +1,15 @@
 import React, { useState } from "react";
-import { View, TextInput, Button, StyleSheet, Text } from "react-native";
+import {
+  View,
+  TextInput,
+  Button,
+  StyleSheet,
+  Text,
+  Pressable,
+} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import { Divider } from "react-native-paper";
 
 const AddTodo = () => {
   const [title, setTitle] = useState("");
@@ -9,51 +17,70 @@ const AddTodo = () => {
   const router = useRouter();
 
   const saveTodo = async () => {
-    const storedTodos = await AsyncStorage.getItem("todos");
-    const savedUser = await AsyncStorage.getItem("user");
-    console.log("14", savedUser);
-    let userObject = JSON.parse(savedUser);
+    if (title.length !== 0 && notes.length !== 0) {
+      const storedTodos = await AsyncStorage.getItem("todos");
+      const savedUser = await AsyncStorage.getItem("user");
+      console.log("14", savedUser);
+      let userObject = JSON.parse(savedUser);
 
-    let todos = storedTodos ? JSON.parse(storedTodos) : [];
-    const newTodo = {
-      id: Date.now().toString(),
-      title,
-      notes,
-      data: [],
-      admin: userObject.email,
-      collaborators: [userObject.email],
-    };
+      let todos = storedTodos ? JSON.parse(storedTodos) : [];
+      const newTodo = {
+        id: Date.now().toString(),
+        title,
+        notes,
+        data: [],
+        admin: userObject.email,
+        collaborators: [userObject.email],
+      };
 
-    console.log("27", newTodo);
+      console.log("27", newTodo);
 
-    if (todos.length !== 0) {
-      todos.push(newTodo);
+      if (todos.length !== 0) {
+        todos.push(newTodo);
+      } else {
+        todos = [newTodo];
+      }
+
+      // const updatedTodos = [...todos, newTodo];
+      await AsyncStorage.setItem("todos", JSON.stringify(todos));
+      router.back(); // Go back to the list after saving
     } else {
-      todos = [newTodo];
+      alert("Please enter all fields");
     }
+  };
 
-    // const updatedTodos = [...todos, newTodo];
-    await AsyncStorage.setItem("todos", JSON.stringify(todos));
+  const cancelTodo = () => {
     router.back(); // Go back to the list after saving
   };
 
+  const Separator = () => <View style={styles.separator} />;
+
   return (
     <View style={styles.container}>
-      <Text>Create List</Text>
-      <TextInput
-        placeholder="Enter your title"
-        value={title}
-        onChangeText={setTitle}
-        style={styles.input}
-      />
-      <TextInput
-        placeholder="Enter your notes"
-        value={notes}
-        onChangeText={setNotes}
-        style={[styles.input, styles.textArea]}
-        multiline
-      />
-      <Button title="Save Todo" onPress={saveTodo} />
+      <Text style={styles.bodyTitle}>Create List</Text>
+      <View style={styles.body}>
+        <TextInput
+          placeholder="Enter List Title"
+          value={title}
+          onChangeText={setTitle}
+          style={styles.input}
+        />
+        <TextInput
+          placeholder="Enter List Notes"
+          value={notes}
+          onChangeText={setNotes}
+          style={[styles.input, styles.textArea]}
+          multiline
+        />
+        <View style={styles.actionButtonContainer}>
+          <Pressable style={styles.actionButton} onPress={saveTodo}>
+            <Text style={styles.actionButtonText}>Save</Text>
+          </Pressable>
+          <Pressable style={styles.actionButton} onPress={cancelTodo}>
+            <Text style={styles.actionButtonText}>Cancel</Text>
+          </Pressable>
+        </View>
+      </View>
     </View>
   );
 };
@@ -67,12 +94,57 @@ const styles = StyleSheet.create({
   input: {
     height: 40,
     borderColor: "#ccc",
+    backgroundColor: "white",
     borderWidth: 1,
+    borderRadius: 10,
     marginBottom: 20,
     paddingHorizontal: 8,
+    fontFamily: "Rubik",
   },
   textArea: {
-    height: 100,
+    height: "40%",
+    textAlignVertical: "top",
+    padding: 10,
+    fontFamily: "Rubik",
+  },
+  separator: {
+    marginVertical: 8,
+    borderBottomColor: "#737373",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  body: {
+    width: "100%",
+    marginTop: 10,
+  },
+  bodyTitle: {
+    fontSize: 35,
+    marginLeft: 5,
+    fontWeight: "bold",
+    marginTop: 15,
+    paddingTop: 5,
+    height: 50,
+  },
+  actionButtonContainer: {
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionButton: {
+    paddingLeft: 35,
+    paddingRight: 35,
+    height: 40,
+    borderRadius: 10,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#007BFF",
+    margin: 10,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "white",
   },
 });
 

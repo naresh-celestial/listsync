@@ -482,7 +482,18 @@ const ToDoManager = () => {
 
     const deleteSelectedItems = () => {
       //Dont delete any items for now.
-      console.log("452", selectedItems);
+      let allItemsTemp = allItems;
+      let allSelectedItemsTemp = selectedItems;
+
+      allItemsTemp = allItemsTemp.filter(
+        (itemA) =>
+          !allSelectedItemsTemp.find((itemB) => itemA.title === itemB.title)
+      );
+
+      let noDuplicateList = [...new Set(allItemsTemp)];
+      setListData((listData) => ({ ...listData, data: noDuplicateList }));
+      let existingitems = listData;
+      setToLocalStorage(noDuplicateList, existingitems);
     };
 
     return (
@@ -575,9 +586,9 @@ const ToDoManager = () => {
         <View style={styles.navSection}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.replace("/ListManager")}
+            onPress={() => router.back()}
           >
-            <Text style={styles.backButtonText}>{" < Back"}</Text>
+            <Text style={styles.backButtonText}>{"Back"}</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.headerSection}>
@@ -645,6 +656,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 5,
   },
   navSection: {
     flex: 1,
@@ -671,7 +683,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#007BFF",
     fontWeight: "500",
-    marginLeft: 10,
+    marginLeft: 20,
     marginTop: 3,
   },
   body: {

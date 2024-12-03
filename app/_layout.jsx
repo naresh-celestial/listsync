@@ -30,6 +30,10 @@ export default function RootLayout() {
             name="ToDoManager/index"
             options={{ title: "To Do List", headerShown: false }}
           />
+          <Stack.Screen
+            name="Settings/index"
+            options={{ title: "Settings", headerShown: false }}
+          />
         </Stack>
       </AuthGuard>
     </PaperProvider>

@@ -40,7 +40,7 @@ const WelcomeScreen = () => {
         >
           <Text style={styles.bottomLinkText}>
             Already have an account?{" "}
-            <Text style={styles.signInLink}>Sign in</Text>
+            <Text style={styles.signInLink}>Log in</Text>
           </Text>
         </TouchableOpacity>
       </View>

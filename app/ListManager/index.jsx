@@ -9,10 +9,17 @@ import {
   Linking,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Card, IconButton, Menu, Button } from "react-native-paper";
+import {
+  Card,
+  IconButton,
+  Menu,
+  Button,
+  BottomNavigation,
+} from "react-native-paper";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { Title } from "react-native-paper";
+import BottomNavigationBar from "../navigation/BottomNavigationBar";
 
 const TodoList = () => {
   const [todos, setTodos] = useState([]);
@@ -37,6 +44,7 @@ const TodoList = () => {
   };
 
   const handleEdit = (id) => {
+    closeMenu();
     router.push(`/ListManager/EditTodo?id=${id}`);
   };
 
@@ -53,7 +61,7 @@ const TodoList = () => {
   };
 
   const viewCollaborators = (list) => {
-    closeMenu;
+    closeMenu();
     router.push(`/ListManager/Collaborators?list=${list}`);
   };
 
@@ -66,6 +74,7 @@ const TodoList = () => {
   };
 
   const goToListItems = async (data) => {
+    closeMenu();
     try {
       let stringData = JSON.stringify(data);
       router.push(`/ToDoManager?item=${stringData}`);
@@ -97,7 +106,7 @@ const TodoList = () => {
           />
           <Menu.Item
             onPress={() => viewCollaborators(JSON.stringify(item))}
-            title="View Collaborators"
+            title="Settings"
           />
         </Menu>
       </View>
@@ -111,8 +120,9 @@ const TodoList = () => {
   );
 
   return (
-    <View style={styles.container}>
-      {/* <View style={styles.header}>
+    <>
+      <View style={styles.container}>
+        {/* <View style={styles.header}>
           <View style={styles.optionsSection}>
             <Text style={styles.optionsText}>0</Text>
           </View>
@@ -123,28 +133,30 @@ const TodoList = () => {
               <Text style={styles.optionsText}>O</Text>
           </View>
       </View> */}
-      <View style={styles.body}>
-        <View style={styles.bodyTitleSection}>
-          <Title style={styles.bodyTitle}>My Lists</Title>
+        <View style={styles.body}>
+          <View style={styles.bodyTitleSection}>
+            <Title style={styles.bodyTitle}>My Lists</Title>
+          </View>
+          {todos.length !== 0 ? (
+            <FlatList
+              data={todos}
+              keyExtractor={(item) => item.id}
+              renderItem={renderTodoItem}
+            />
+          ) : (
+            <Text style={styles.emptyListText}>No Items in the list.</Text>
+          )}
+          <Button
+            mode="contained"
+            style={styles.addButton}
+            onPress={() => router.push("/ListManager/AddTodo")}
+          >
+            Create List
+          </Button>
         </View>
-        {todos.length !== 0 ? (
-          <FlatList
-            data={todos}
-            keyExtractor={(item) => item.id}
-            renderItem={renderTodoItem}
-          />
-        ) : (
-          <Text style={styles.emptyListText}>No Items in the list.</Text>
-        )}
-        <Button
-          mode="contained"
-          style={styles.addButton}
-          onPress={() => router.push("/ListManager/AddTodo")}
-        >
-          Add Todo
-        </Button>
       </View>
-    </View>
+      <BottomNavigationBar page="Home" />
+    </>
   );
 };
 
