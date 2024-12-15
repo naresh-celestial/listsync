@@ -1,4 +1,5 @@
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db } from "../firebaseConfig";
 
 export const getAllNotesOfUser = async (notesWithIdList) => {
   try {
@@ -15,7 +16,7 @@ export const getAllNotesOfUser = async (notesWithIdList) => {
       return notesDataList;
     }
   } catch (err) {
-    console.log(err);
+    console.log("Get All Notes of User Error - ", err);
   }
 };
 
@@ -31,7 +32,7 @@ export const getNotes = async (noteId) => {
       }
     }
   } catch (err) {
-    console.log(err);
+    console.log("Get Notes Error - ", err);
   }
 };
 
@@ -41,13 +42,13 @@ export const createNotes = async (note) => {
       await setDoc(doc(db, "notes", note.uid), {
         uid: note.uid,
         title: note.title,
-        description: note.description,
-        favourite: note.favourite,
-        category: note.category,
-        author: note.author,
+        notes: note.notes,
+        data: JSON.stringify(note.data),
+        admin: note.admin,
+        collaborators: JSON.stringify([note.collaborators]),
       });
     }
   } catch (err) {
-    console.log(err);
+    console.log("Create Notes Error - ", err);
   }
 };

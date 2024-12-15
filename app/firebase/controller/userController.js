@@ -15,7 +15,7 @@ export const createProfile = async (userDetails) => {
       });
     }
   } catch (err) {
-    console.log("Create Profile ERR - ", err);
+    console.log("Create Profile Error - ", err);
   }
 };
 
@@ -29,7 +29,7 @@ export const getUser = async (uid) => {
       return "No User Found";
     }
   } catch (err) {
-    console.log(err);
+    console.log("Get User Error - ", err);
   }
 };
 
@@ -40,6 +40,6 @@ export const updateUser = async (newPayload) => {
       notes: newPayload.notes,
     });
   } catch (err) {
-    console.log(err);
+    console.log("Update User Error - ", err);
   }
 };
