@@ -14,6 +14,11 @@ import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors } from "../../../constants/Colors";
 
+import {
+  createProfile,
+  getUser,
+} from "../../firebase/controller/userController";
+
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,16 +27,83 @@ const LoginScreen = () => {
   const saveUserLogin = async (userLogin) => {
     if (userLogin) {
       console.log("user login", userLogin);
+      // await AsyncStorage.setItem("notes", JSON.stringify())
       await AsyncStorage.setItem("user", JSON.stringify(userLogin));
+    }
+  };
+
+  const saveUserNotes = async (notesList) => {
+    if (notesList) {
+      let notesDataForUser = await getAllNotesForUser(notesList);
+
+      console.log("notes list", notesDataForUser);
+      await AsyncStorage.setItem(
+        "notesFromCloud",
+        JSON.stringify(notesDataForUser)
+      );
+    }
+  };
+
+  const validateCredentials = (email, password) => {
+    if (email && password) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (emailRegex.test(email)) {
+        // Check password availability and criteria
+        if (password && typeof password === "string" && password.length >= 6) {
+          return true;
+        } else {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    }
+  };
+
+  //Replace this function with GCC UID
+  const generateUserId = (email) => {
+    if (email) {
+      if (!email || typeof email !== "string") {
+        throw new Error("A valid email is required to generate a user ID.");
+      }
+      const emailPrefix = email.split("@")[0];
+
+      const randomNumber = Math.floor(10000 + Math.random() * 90000);
+
+      const userId = `${emailPrefix}${randomNumber}`;
+
+      return userId;
     }
   };
 
   const handleLogin = async () => {
     try {
       if (email && password) {
+        // if (validateCredentials(email, password)) {
+        //   let userId = generateUserId(email);
+
+        //call firebase method to set this if new user
+        //Login User
+        // let currentUser = getUser(userId);
+
+        // if (currentUser) {
+        //User available
         // console.log("Logging in", email, password);
-        await saveUserLogin({ email: email, password: password });
+        // await saveUserLogin({ email: email, password: password });
+        // await saveUserNotes(["0987654321", "1234567890"]);
         router.replace("ListManager");
+        // } else {
+        // let payload = {
+        //   uid: userId,
+        //   email: email,
+        //   password: password,
+        // };
+        //Create Profile
+        // createProfile(payload);
+        // }
+        // } else {
+        //   alert("Please enter credentials");
+        // }
       } else {
         alert("Please enter credentials");
       }
