@@ -20,9 +20,7 @@ const AddTodo = () => {
     if (title.length !== 0 && notes.length !== 0) {
       const storedTodos = await AsyncStorage.getItem("todos");
       const savedUser = await AsyncStorage.getItem("user");
-      console.log("14", savedUser);
       let userObject = JSON.parse(savedUser);
-
       let todos = storedTodos ? JSON.parse(storedTodos) : [];
       const newTodo = {
         id: Date.now().toString(),

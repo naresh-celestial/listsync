@@ -23,7 +23,7 @@ import { useRouter, useLocalSearchParams, useNavigation } from "expo-router";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LongPressGestureHandler } from "react-native-gesture-handler";
-
+import { getLocalStorageItem } from ".././util/helper";
 const ToDoManager = () => {
   //router
   const router = useRouter();
@@ -579,6 +579,64 @@ const ToDoManager = () => {
       console.log(err);
     }
   };
+
+  //Add Default Items to List
+  const addDefaultItems = () => {
+    try {
+      let itemAuthor = "";
+      let user = getLocalStorageItem("user");
+      if (user) {
+        itemAuthor = user.email;
+      }
+      let existingListCopy = [...listData.data];
+      let isListFresh = existingListCopy.length === 0 ? true : false;
+
+      if (isListFresh) {
+        let defaultItems = [
+          {
+            id: 1,
+            title: "Carrot",
+            description: "Rabbit Varient",
+            favourite: true,
+            category: "Grocery",
+            author: itemAuthor,
+          },
+          {
+            id: 2,
+            title: "Tomato",
+            description: "Apple Tomato",
+            favourite: true,
+            category: "Grocery",
+            author: itemAuthor,
+          },
+          {
+            id: 3,
+            title: "Onion",
+            description: "Egypt Onion",
+            favourite: true,
+            category: "Grocery",
+            author: itemAuthor,
+          },
+        ];
+
+        defaultItems.forEach((item) => {
+          existingListCopy.push(item);
+        });
+        setListData((listData) => ({
+          ...listData,
+          data: existingListCopy,
+        }));
+        console.log(listData);
+        setToLocalStorage(existingListCopy, listData);
+      }
+    } catch (err) {
+      console.log("Add Default Items - ERR", err);
+    }
+  };
+
+  useEffect(() => {
+    addDefaultItems();
+  }, []);
 
   return listData ? (
     <View style={styles.toDoContainer}>

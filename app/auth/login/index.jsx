@@ -79,31 +79,31 @@ const LoginScreen = () => {
   const handleLogin = async () => {
     try {
       if (email && password) {
-        // if (validateCredentials(email, password)) {
-        //   let userId = generateUserId(email);
+        if (validateCredentials(email, password)) {
+          //   let userId = generateUserId(email);
 
-        //call firebase method to set this if new user
-        //Login User
-        // let currentUser = getUser(userId);
+          //call firebase method to set this if new user
+          //Login User
+          // let currentUser = getUser(userId);
 
-        // if (currentUser) {
-        //User available
-        // console.log("Logging in", email, password);
-        // await saveUserLogin({ email: email, password: password });
-        // await saveUserNotes(["0987654321", "1234567890"]);
-        router.replace("ListManager");
-        // } else {
-        // let payload = {
-        //   uid: userId,
-        //   email: email,
-        //   password: password,
-        // };
-        //Create Profile
-        // createProfile(payload);
-        // }
-        // } else {
-        //   alert("Please enter credentials");
-        // }
+          // if (currentUser) {
+          //User available
+          // console.log("Logging in", email, password);
+          await saveUserLogin({ email: email, password: password });
+          // await saveUserNotes(["0987654321", "1234567890"]);
+          router.replace("ListManager");
+          // }
+          // else {
+          // let payload = {
+          //   uid: userId,
+          //   email: email,
+          //   password: password,
+          // };
+          //Create Profile
+          // createProfile(payload);
+        } else {
+          alert("Please enter credentials");
+        }
       } else {
         alert("Please enter credentials");
       }
