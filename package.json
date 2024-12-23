@@ -8,6 +8,7 @@
     "build-dev": "npx eas build -p android --profile development",
     "build-production": "npx eas build -p android --profile production",
     "build-preview": "npx eas build -p android --profile preview",
+    "prebuild": "npx expo prebuild",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
