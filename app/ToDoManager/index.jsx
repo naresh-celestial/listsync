@@ -302,7 +302,8 @@ const ToDoManager = () => {
   //Flat List Component
   const RenderFlatListView = useMemo(() => {
     if (listData !== undefined && listData.data.length !== 0) {
-      let groupedItems = groupCategory(listData.data);
+      console.log("305", listData);
+      let groupedItems = groupCategory(JSON.parse(listData.data));
       return Object.entries(groupedItems).map((item, index) => {
         // console.log("new", item);
         let key = item[0];

@@ -13,7 +13,10 @@ import {
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors } from "../../../constants/Colors";
-
+import {
+  getAllNotesOfUser,
+  getNotes,
+} from "../../firebase/controller/notesController";
 import {
   createProfile,
   getUser,
@@ -27,22 +30,21 @@ const LoginScreen = () => {
   const saveUserLogin = async (userLogin) => {
     if (userLogin) {
       console.log("user login", userLogin);
-      // await AsyncStorage.setItem("notes", JSON.stringify())
       await AsyncStorage.setItem("user", JSON.stringify(userLogin));
     }
   };
 
-  const saveUserNotes = async (notesList) => {
-    if (notesList) {
-      let notesDataForUser = await getAllNotesForUser(notesList);
-
-      console.log("notes list", notesDataForUser);
-      await AsyncStorage.setItem(
-        "notesFromCloud",
-        JSON.stringify(notesDataForUser)
-      );
-    }
-  };
+  // const getUserNotes = (notesList) => {
+  //   if (notesList) {
+  //     let notesDataForUser = getAllNotesOfUser(notesList);
+  //     return notesDataForUser;
+  //     console.log("notes list", notesDataForUser);
+  //     await AsyncStorage.setItem(
+  //       "notesFromCloud",
+  //       JSON.stringify(notesDataForUser)
+  //     );
+  //   }
+  // };
 
   const validateCredentials = (email, password) => {
     if (email && password) {
@@ -80,27 +82,35 @@ const LoginScreen = () => {
     try {
       if (email && password) {
         if (validateCredentials(email, password)) {
-          //   let userId = generateUserId(email);
-
           //call firebase method to set this if new user
           //Login User
-          // let currentUser = getUser(userId);
+          let currentUser = await getUser("PpyrD0pnkA6v9ocTF6wo");
 
-          // if (currentUser) {
-          //User available
-          // console.log("Logging in", email, password);
-          await saveUserLogin({ email: email, password: password });
-          // await saveUserNotes(["0987654321", "1234567890"]);
-          router.replace("ListManager");
-          // }
-          // else {
-          // let payload = {
-          //   uid: userId,
-          //   email: email,
-          //   password: password,
-          // };
-          //Create Profile
-          // createProfile(payload);
+          if (currentUser) {
+            console.log("90", currentUser);
+            let userNotes = await getAllNotesOfUser(
+              JSON.parse(currentUser.notes)
+            );
+            if (userNotes && userNotes.length !== 0) {
+              await AsyncStorage.setItem("todos", JSON.stringify(userNotes));
+              const { email, password, notes, uid } = currentUser;
+              await saveUserLogin({
+                email: email,
+                password: password,
+                uid: uid,
+                notes: JSON.parse(notes),
+              });
+              router.replace("ListManager");
+              //   // }
+              //   // else {
+              //   // let payload = {
+              //   //   uid: userId,
+              //   //   email: email,
+              //   //   password: password,
+            }
+            //   //Create Profile
+            //   // createProfile(payload);
+          }
         } else {
           alert("Please enter credentials");
         }

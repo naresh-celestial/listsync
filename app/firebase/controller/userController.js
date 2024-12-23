@@ -35,9 +35,10 @@ export const getUser = async (uid) => {
 
 export const updateUser = async (newPayload) => {
   try {
-    const userId = doc(db, "users", newPayload.uid);
+    const { uid, notes } = newPayload;
+    const userId = doc(db, "users", uid);
     await updateDoc(userId, {
-      notes: newPayload.notes,
+      notes: notes,
     });
   } catch (err) {
     console.log("Update User Error - ", err);

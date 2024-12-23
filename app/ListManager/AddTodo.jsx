@@ -10,6 +10,9 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { Divider } from "react-native-paper";
+import { createNotes } from "../firebase/controller/notesController";
+import { getDefaultItems } from "../util/helper";
+import { updateUser } from "../firebase/controller/userController";
 
 const AddTodo = () => {
   const [title, setTitle] = useState("");
@@ -22,26 +25,36 @@ const AddTodo = () => {
       const savedUser = await AsyncStorage.getItem("user");
       let userObject = JSON.parse(savedUser);
       let todos = storedTodos ? JSON.parse(storedTodos) : [];
-      const newTodo = {
-        id: Date.now().toString(),
-        title,
-        notes,
-        data: [],
-        admin: userObject.email,
-        collaborators: [userObject.email],
-      };
 
-      console.log("27", newTodo);
+      if (userObject) {
+        const { uid, email } = userObject;
+        let defaultItems = getDefaultItems(email);
 
-      if (todos.length !== 0) {
-        todos.push(newTodo);
-      } else {
-        todos = [newTodo];
+        const newTodo = {
+          id: Date.now().toString(),
+          title,
+          notes,
+          data: defaultItems,
+          admin: email,
+          collaborators: [email],
+        };
+
+        //Create the Notes in Cloud
+        await createNotes(newTodo);
+
+        //update the notes Id to user in Cloud
+        userObject.notes.push(newTodo.id);
+        await updateUser({ uid: uid, notes: JSON.stringify(userObject.notes) });
+        if (todos.length !== 0) {
+          todos.push(newTodo);
+        } else {
+          todos = [newTodo];
+        }
+
+        // const updatedTodos = [...todos, newTodo];
+        await AsyncStorage.setItem("todos", JSON.stringify(todos));
+        router.back(); // Go back to the list after saving
       }
-
-      // const updatedTodos = [...todos, newTodo];
-      await AsyncStorage.setItem("todos", JSON.stringify(todos));
-      router.back(); // Go back to the list after saving
     } else {
       alert("Please enter all fields");
     }

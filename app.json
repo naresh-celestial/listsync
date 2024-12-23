@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.app"
+      "bundleIdentifier": "com.celestial.listSync"
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +22,7 @@
         "backgroundColor": "#ffffff"
       },
       "googleServicesFile": "./google-services.json",
-      "package": "com.example.app"
+      "package": "com.celestial.listSync"
     },
     "web": {
       "bundler": "metro",
