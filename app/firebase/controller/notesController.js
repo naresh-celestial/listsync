@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../firebaseConfig";
 
 export const getAllNotesOfUser = async (notesWithIdList) => {
@@ -53,14 +53,48 @@ export const createNotes = async (note) => {
         uid: note.id,
         title: note.title,
         notes: note.notes,
-        data: JSON.stringify(note.data),
+        data: note.data,
         admin: note.admin,
-        collaborators: JSON.stringify(note.collaborators),
+        collaborators: note.collaborators,
       });
       return { message: "Success" };
     }
   } catch (err) {
     console.log("Create Notes Error - ", err);
     return { message: "Error" };
+  }
+};
+
+export const updateNotesData = async (payload) => {
+  try {
+    console.log("70", payload);
+    if (payload.uid) {
+      const { uid, data } = payload;
+      const notesRef = doc(db, "notes", uid);
+      await updateDoc(notesRef, {
+        data: data,
+      });
+      return { message: "Success" };
+    } else {
+      return { message: "Invalid payload" };
+    }
+  } catch (err) {
+    console.log("CLOUD - Updating Notes Err", err);
+    return { message: "Error" };
+  }
+};
+
+export const deleteNotes = async (uid) => {
+  try {
+    if (uid) {
+      console.log("90", uid);
+      const notesRef = doc(db, "notes", uid);
+      await deleteDoc(notesRef);
+      return { message: "Success" };
+    } else {
+      return { message: "Invalid payload" };
+    }
+  } catch (err) {
+    console.log("CLOUD - Deleteing Notes Err", err);
   }
 };

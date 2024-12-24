@@ -27,6 +27,7 @@ const AddTodo = () => {
       let todos = storedTodos ? JSON.parse(storedTodos) : [];
 
       if (userObject) {
+        console.log("30", userObject);
         const { uid, email } = userObject;
         let defaultItems = getDefaultItems(email);
 
@@ -53,6 +54,7 @@ const AddTodo = () => {
 
         // const updatedTodos = [...todos, newTodo];
         await AsyncStorage.setItem("todos", JSON.stringify(todos));
+        await AsyncStorage.setItem("user", JSON.stringify(userObject));
         router.back(); // Go back to the list after saving
       }
     } else {

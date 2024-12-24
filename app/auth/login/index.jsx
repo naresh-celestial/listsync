@@ -80,43 +80,43 @@ const LoginScreen = () => {
 
   const handleLogin = async () => {
     try {
-      if (email && password) {
-        if (validateCredentials(email, password)) {
-          //call firebase method to set this if new user
-          //Login User
-          let currentUser = await getUser("PpyrD0pnkA6v9ocTF6wo");
+      // if (email && password) {
+      // if (validateCredentials(email, password)) {
+      //call firebase method to set this if new user
+      //Login User
+      let currentUser = await getUser("PpyrD0pnkA6v9ocTF6wo");
 
-          if (currentUser) {
-            console.log("90", currentUser);
-            let userNotes = await getAllNotesOfUser(
-              JSON.parse(currentUser.notes)
-            );
-            if (userNotes && userNotes.length !== 0) {
-              await AsyncStorage.setItem("todos", JSON.stringify(userNotes));
-              const { email, password, notes, uid } = currentUser;
-              await saveUserLogin({
-                email: email,
-                password: password,
-                uid: uid,
-                notes: JSON.parse(notes),
-              });
-              router.replace("ListManager");
-              //   // }
-              //   // else {
-              //   // let payload = {
-              //   //   uid: userId,
-              //   //   email: email,
-              //   //   password: password,
-            }
-            //   //Create Profile
-            //   // createProfile(payload);
-          }
+      if (currentUser) {
+        console.log("90", currentUser);
+        let userNotes = await getAllNotesOfUser(JSON.parse(currentUser.notes));
+        if (userNotes && userNotes.length !== 0) {
+          await AsyncStorage.setItem("todos", JSON.stringify(userNotes));
         } else {
-          alert("Please enter credentials");
+          await AsyncStorage.setItem("todos", JSON.stringify([]));
         }
-      } else {
-        alert("Please enter credentials");
+        const { email, password, notes, uid } = currentUser;
+        await saveUserLogin({
+          email: email,
+          password: password,
+          uid: uid,
+          notes: JSON.parse(notes),
+        });
+        router.replace("ListManager");
+        //   // }
+        //   // else {
+        //   // let payload = {
+        //   //   uid: userId,
+        //   //   email: email,
+        //   //   password: password,
+        //   //Create Profile
+        //   // createProfile(payload);
       }
+      //   } else {
+      //     alert("Please enter credentials");
+      //   }
+      // } else {
+      //   alert("Please enter credentials");
+      // }
     } catch (err) {
       console.log(err);
     }

@@ -20,6 +20,8 @@ import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { Title } from "react-native-paper";
 import BottomNavigationBar from "../navigation/BottomNavigationBar";
+import { deleteNotes } from "../firebase/controller/notesController";
+import { updateUser } from "../firebase/controller/userController";
 
 const TodoList = () => {
   const [todos, setTodos] = useState([]);
@@ -38,9 +40,32 @@ const TodoList = () => {
     setTodos(newTodos);
   };
 
-  const handleDelete = (id) => {
-    const filteredTodos = todos.filter((todo) => todo.id !== id);
-    saveTodos(filteredTodos);
+  const getNotesId = (notesList) => {
+    let notesId = [];
+    notesList.forEach((list) => {
+      if (list) {
+        notesId.push(list.uid);
+      }
+    });
+    return notesId;
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      const savedUser = await AsyncStorage.getItem("user");
+      let userObject = JSON.parse(savedUser);
+      const filteredTodos = todos.filter((todo) => todo.id !== id);
+      let notesIdList = getNotesId(filteredTodos);
+      let udpateUserPayload = {
+        uid: userObject.uid,
+        notes: JSON.stringify(notesIdList),
+      };
+      console.log("63", udpateUserPayload);
+      await updateUser(udpateUserPayload);
+      saveTodos(filteredTodos);
+    } catch (err) {
+      console.log(err);
+    }
   };
 
   const handleEdit = (id) => {
@@ -84,7 +109,7 @@ const TodoList = () => {
   };
 
   const renderTodoItem = ({ item }) => (
-    <Card style={styles.card} onPress={() => goToListItems(item)}>
+    <Card key={item.id} style={styles.card} onPress={() => goToListItems(item)}>
       <View style={styles.cardContent}>
         <Text style={styles.todoText}>{item.title}</Text>
         {/* <Text style={styles.todoText}>{item.notes}</Text> */}

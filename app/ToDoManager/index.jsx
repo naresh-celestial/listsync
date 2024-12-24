@@ -24,22 +24,27 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LongPressGestureHandler } from "react-native-gesture-handler";
 import { getLocalStorageItem } from ".././util/helper";
+import { updateNotesData } from "../firebase/controller/notesController";
 const ToDoManager = () => {
   //router
   const router = useRouter();
   const searchParams = useLocalSearchParams();
   const itemsData = searchParams.item; // Access id directly if available
   //hooks
-  const [listData, setListData] = useState(JSON.parse(itemsData));
+  const [listData, setListData] = useState(null);
 
   //state
   const [myList, setMyList] = useState([]);
   // {id: 1, title:'First List', description:'This is the first item in the list'},
-  //     {id: 2, title:'Second List', description:'This is the second item in the list'},
+  // {id: 2, title:'Second List', description:'This is the second item in the list'},
   const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
   //Search
   const [isSearchEnabled, setIsSerchEnabled] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    setListData(JSON.parse(itemsData));
+  }, [itemsData]);
 
   //Controller functions
   const addItems = () => {
@@ -109,32 +114,57 @@ const ToDoManager = () => {
     const saveItem = (id) => {
       // Find the this item from the items and update the details
       let existingitems = listData;
-      let thisItem = existingitems.data.find((items) => items.id === id);
-      thisItem.title = itemTitle;
-      thisItem.description = itemDescription;
-      thisItem.category = itemCategory;
+      if (existingitems !== null && existingitems !== undefined) {
+        let listItems = null;
+        if (typeof existingitems.data === "string") {
+          listItems = JSON.parse(existingitems.data);
+        } else {
+          listItems = existingitems.data;
+        }
+        let thisItem = listItems.find((items) => items.id === id);
+        thisItem.title = itemTitle;
+        thisItem.description = itemDescription;
+        thisItem.category = itemCategory;
 
-      //Get index of this item in the list
-      const findObject = (listItem) => {
-        return listItem === thisItem;
-      };
-      let indexOfSelectedList = existingitems.data.findIndex(findObject);
-      existingitems.data[indexOfSelectedList] = thisItem;
+        //Get index of this item in the list
+        const findObject = (listItem) => {
+          return listItem === thisItem;
+        };
+        let indexOfSelectedList = listItems.findIndex(findObject);
+        listItems[indexOfSelectedList] = thisItem;
 
-      //Save to Local Storage
-      setToLocalStorage(existingitems.data, existingitems);
-      editSaveToggle();
+        //Save to Local Storage
+        setToLocalStorage(listItems, existingitems);
+        editSaveToggle();
+      }
     };
 
     const deleteItem = (id) => {
-      let tempList = [...listData.data];
-      if (tempList.length == 1) {
-        setListData((listData) => ({ ...listData, data: [] }));
-      } else {
-        tempList.splice(id - 1, 1);
-        setListData((listData) => ({ ...listData, data: tempList }));
+      let existingItems = listData;
+      if (existingItems !== null && existingItems !== undefined) {
+        let listItems = null;
+        if (typeof existingItems.data === "string") {
+          listItems = JSON.parse(existingItems.data);
+        } else {
+          listItems = existingItems.data;
+        }
+        console.log("152", listItems);
+
+        if (listItems.length == 1) {
+          setListData((listData) => ({ ...listData, data: [] }));
+        } else {
+          let thisItem = listItems.find((items) => items.id === id);
+          //Get index of this item in the list
+          const findObject = (listItem) => {
+            return listItem === thisItem;
+          };
+          let indexOfSelectedItem = listItems.findIndex(findObject);
+
+          listItems.splice(indexOfSelectedItem, 1);
+          setListData((listData) => ({ ...listData, data: listItems }));
+        }
+        setToLocalStorage(listItems, listData);
       }
-      setToLocalStorage(tempList, listData);
     };
 
     const setFavouriteItem = (id) => {
@@ -291,7 +321,7 @@ const ToDoManager = () => {
   };
   const groupCategory = (list) => {
     let groupedObjects = {};
-    list.forEach((list) => {
+    Object.values(list).forEach((list) => {
       if (!groupedObjects[list.category]) {
         groupedObjects[list.category] = [];
       }
@@ -301,11 +331,16 @@ const ToDoManager = () => {
   };
   //Flat List Component
   const RenderFlatListView = useMemo(() => {
-    if (listData !== undefined && listData.data.length !== 0) {
-      console.log("305", listData);
-      let groupedItems = groupCategory(JSON.parse(listData.data));
+    let listDataObject = listData;
+    if (listDataObject !== null && listDataObject !== undefined) {
+      let listItems = null;
+      if (typeof listDataObject.data === "string") {
+        listItems = JSON.parse(listDataObject.data);
+      } else {
+        listItems = listDataObject.data;
+      }
+      let groupedItems = groupCategory(listItems);
       return Object.entries(groupedItems).map((item, index) => {
-        // console.log("new", item);
         let key = item[0];
         let value = item[1];
         return (
@@ -328,7 +363,7 @@ const ToDoManager = () => {
               })}
               contentContainerStyle={styles.flatListStyles}
               renderItem={(item) => {
-                return <FlatListItem item={item.item} />;
+                return <FlatListItem key={index} item={item.item} />;
               }}
               keyExtractor={(item) => item.id}
               alwaysBounceVertical
@@ -366,7 +401,7 @@ const ToDoManager = () => {
         if (isFieldValid()) {
           let existingListCopy = [...listData.data];
           let itemObject = {
-            id: existingListCopy.length + 1,
+            id: Date.now().toString(),
             title: title,
             description: description,
             favourite: false,
@@ -550,6 +585,20 @@ const ToDoManager = () => {
     );
   };
 
+  //Cloud Actions
+  const saveNoteToCloud = async (data, listMetaData) => {
+    try {
+      let updatePayload = {
+        uid: listMetaData.id ? listMetaData.id : listMetaData.uid,
+        data: JSON.stringify(data),
+      };
+      let updateToCloudObject = await updateNotesData(updatePayload);
+      console.log("111", updateToCloudObject);
+    } catch (err) {
+      console.log("Saving to cloud Err -", err);
+    }
+  };
+
   //Local Storage
   //Set to Local Storage
   const setToLocalStorage = async (list, listMetaData) => {
@@ -559,10 +608,10 @@ const ToDoManager = () => {
       let parsedAllData = JSON.parse(storedTodos);
 
       //this list meta data
-      const { id } = listMetaData;
+      const { uid } = listMetaData;
 
       //Find "this" list from all lists
-      let selectedData = parsedAllData.find((item) => item.id === id);
+      let selectedData = parsedAllData.find((item) => item.uid === uid);
 
       //Set the current items to list
       selectedData.data = list;
@@ -574,6 +623,10 @@ const ToDoManager = () => {
       let indexOfSelectedList = parsedAllData.findIndex(findObject);
       parsedAllData[indexOfSelectedList] = selectedData;
 
+      await saveNoteToCloud(
+        parsedAllData[indexOfSelectedList].data,
+        listMetaData
+      );
       await AsyncStorage.setItem("todos", JSON.stringify(parsedAllData));
       console.log("Saved to local!");
     } catch (err) {
