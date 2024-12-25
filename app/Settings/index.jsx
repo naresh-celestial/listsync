@@ -100,6 +100,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
     paddingTop: 5,
     height: 50,
+    color: "black",
   },
   logoutSection: {
     width: "100%",

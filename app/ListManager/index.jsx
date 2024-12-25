@@ -120,6 +120,7 @@ const TodoList = () => {
           onDismiss={closeMenu}
           anchor={
             <IconButton
+              iconColor="#000000"
               icon="dots-vertical"
               onPress={() => openMenu(item.uid ? item.uid : item.id)}
             />
@@ -198,6 +199,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     fontFamily: "Rubik",
+    marginTop: 20,
   },
   header: {
     flex: 0.05,
@@ -222,6 +224,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
     paddingTop: 5,
     height: 50,
+    color: "black",
   },
   headerSection: {
     flex: 1,
@@ -261,6 +264,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     backgroundColor: "#007BFF",
     borderRadius: 10,
+    color: "white",
   },
   emptyListText: {
     textAlign: "center",

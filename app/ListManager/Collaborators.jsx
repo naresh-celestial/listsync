@@ -62,6 +62,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     fontFamily: "Rubik",
+    marginTop: 20,
   },
   input: {
     height: 40,
@@ -136,7 +137,9 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     marginTop: 0,
     paddingTop: 5,
-    height: 50,
+    height: 35,
+    lineHeight: 31,
+    color: "black",
   },
 });
 

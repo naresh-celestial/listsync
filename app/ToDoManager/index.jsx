@@ -539,47 +539,27 @@ const ToDoManager = () => {
         onDismiss={closeMenu}
         anchor={
           <IconButton
+            iconColor="#000000"
             icon="dots-vertical"
             onPress={() => openMenu(listData.id)}
           />
         }
       >
         {!isSelectionOn ? (
-          <Menu.Item
-            style={styles.options}
-            onPress={() => deleteAllItems()}
-            title="Delete All"
-          />
+          <Menu.Item onPress={() => deleteAllItems()} title="Delete All" />
         ) : (
           <>
             {selectedItems.length !== 0 ? (
-              <Menu.Item
-                style={styles.options}
-                onPress={deleteSelectedItems}
-                title="Delete"
-              />
+              <Menu.Item onPress={deleteSelectedItems} title="Delete" />
             ) : null}
-            <Menu.Item
-              style={styles.options}
-              onPress={selectAllItems}
-              title="Select All"
-            />
-            <Menu.Item
-              style={styles.options}
-              onPress={unSelectAllItems}
-              title="UnSelect All"
-            />
+            <Menu.Item onPress={selectAllItems} title="Select All" />
+            <Menu.Item onPress={unSelectAllItems} title="UnSelect All" />
             {/* <Menu.Item
-              style={styles.options}
               onPress={invertSelection}
               title="Invert Selection"
             /> */}
             <Divider />
-            <Menu.Item
-              style={styles.options}
-              onPress={cancelSelection}
-              title="Cancel"
-            />
+            <Menu.Item onPress={cancelSelection} title="Cancel" />
           </>
         )}
       </Menu>
@@ -760,7 +740,7 @@ const styles = StyleSheet.create({
   toDoContainer: {
     width: "100%",
     height: "100%",
-    marginTop: 20,
+    marginTop: 35,
     display: "flex",
   },
   header: {
@@ -862,6 +842,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
     height: 50,
     paddingTop: 5,
+    color: "black",
   },
   listItemEditable: {
     width: "93%",
