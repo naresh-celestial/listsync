@@ -35,7 +35,7 @@ const AddTodo = () => {
           id: Date.now().toString(),
           title,
           notes,
-          data: defaultItems,
+          data: JSON.stringify(defaultItems),
           admin: email,
           collaborators: [email],
         };

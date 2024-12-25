@@ -483,8 +483,9 @@ const ToDoManager = () => {
       setVisibleMenu(null);
     };
 
-    const deleteAllItems = () => {
+    const deleteAllItems = async () => {
       setListData((listData) => ({ ...listData, data: [] }));
+      setToLocalStorage([], listData);
     };
 
     const cancelSelection = () => {
@@ -635,62 +636,62 @@ const ToDoManager = () => {
   };
 
   //Add Default Items to List
-  const addDefaultItems = () => {
-    try {
-      let itemAuthor = "";
-      let user = getLocalStorageItem("user");
-      if (user) {
-        itemAuthor = user.email;
-      }
-      let existingListCopy = [...listData.data];
-      let isListFresh = existingListCopy.length === 0 ? true : false;
+  // const addDefaultItems = () => {
+  //   try {
+  //     let itemAuthor = "";
+  //     let user = getLocalStorageItem("user");
+  //     if (user) {
+  //       itemAuthor = user.email;
+  //     }
+  //     let existingListCopy = [...listData.data];
+  //     let isListFresh = existingListCopy.length === 0 ? true : false;
 
-      if (isListFresh) {
-        let defaultItems = [
-          {
-            id: 1,
-            title: "Carrot",
-            description: "Rabbit Varient",
-            favourite: true,
-            category: "Grocery",
-            author: itemAuthor,
-          },
-          {
-            id: 2,
-            title: "Tomato",
-            description: "Apple Tomato",
-            favourite: true,
-            category: "Grocery",
-            author: itemAuthor,
-          },
-          {
-            id: 3,
-            title: "Onion",
-            description: "Egypt Onion",
-            favourite: true,
-            category: "Grocery",
-            author: itemAuthor,
-          },
-        ];
+  //     if (isListFresh) {
+  //       let defaultItems = [
+  //         {
+  //           id: 1,
+  //           title: "Carrot",
+  //           description: "Rabbit Varient",
+  //           favourite: true,
+  //           category: "Grocery",
+  //           author: itemAuthor,
+  //         },
+  //         {
+  //           id: 2,
+  //           title: "Tomato",
+  //           description: "Apple Tomato",
+  //           favourite: true,
+  //           category: "Grocery",
+  //           author: itemAuthor,
+  //         },
+  //         {
+  //           id: 3,
+  //           title: "Onion",
+  //           description: "Egypt Onion",
+  //           favourite: true,
+  //           category: "Grocery",
+  //           author: itemAuthor,
+  //         },
+  //       ];
 
-        defaultItems.forEach((item) => {
-          existingListCopy.push(item);
-        });
-        setListData((listData) => ({
-          ...listData,
-          data: existingListCopy,
-        }));
-        console.log(listData);
-        setToLocalStorage(existingListCopy, listData);
-      }
-    } catch (err) {
-      console.log("Add Default Items - ERR", err);
-    }
-  };
+  //       defaultItems.forEach((item) => {
+  //         existingListCopy.push(item);
+  //       });
+  //       setListData((listData) => ({
+  //         ...listData,
+  //         data: existingListCopy,
+  //       }));
+  //       console.log(listData);
+  //       setToLocalStorage(existingListCopy, listData);
+  //     }
+  //   } catch (err) {
+  //     console.log("Add Default Items - ERR", err);
+  //   }
+  // };
 
-  useEffect(() => {
-    addDefaultItems();
-  }, []);
+  // useEffect(() => {
+  //   addDefaultItems();
+  // }, []);
 
   return listData ? (
     <View style={styles.toDoContainer}>
