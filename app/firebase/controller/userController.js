@@ -40,7 +40,9 @@ export const updateUser = async (newPayload) => {
     await updateDoc(userId, {
       notes: notes,
     });
+    return { message: "success" };
   } catch (err) {
     console.log("Update User Error - ", err);
+    return { message: "error" };
   }
 };

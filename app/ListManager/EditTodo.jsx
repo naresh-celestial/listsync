@@ -9,6 +9,10 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import {
+  updateNotesData,
+  updateNotesMetaData,
+} from "../firebase/controller/notesController";
 
 const EditTodo = () => {
   const searchParams = useLocalSearchParams();
@@ -18,15 +22,13 @@ const EditTodo = () => {
   const [todos, setTodos] = useState([]);
   const router = useRouter();
 
-  console.log(id ? "Edit Todo" : "Add Todo", id);
-
   useEffect(() => {
     loadTodos();
   }, []);
 
   useEffect(() => {
     if (id && todos.length) {
-      const todo = todos.find((t) => t.id === id);
+      const todo = todos.find((t) => t.uid === id);
       if (todo) {
         setTitle(todo.title);
         setNotes(todo.notes);
@@ -44,10 +46,19 @@ const EditTodo = () => {
   const saveTodo = async () => {
     let updatedTodos;
     if (id) {
-      // Edit existing todo
-      updatedTodos = todos.map((todo) =>
-        todo.id === id ? { ...todo, title, notes } : todo
-      );
+      //Update to Cloud
+      let updateNotesPayload = {
+        uid: id,
+        title: title,
+        notes: notes,
+      };
+      let updateNotesResp = await updateNotesMetaData(updateNotesPayload);
+      if (updateNotesResp) {
+        // Edit existing todo
+        updatedTodos = todos.map((todo) =>
+          todo.uid === id ? { ...todo, title, notes } : todo
+        );
+      }
     } else {
       // Add new todo
       const newTodo = { id: uuid.v4(), title, notes };

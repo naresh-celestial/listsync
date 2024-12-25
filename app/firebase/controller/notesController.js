@@ -7,7 +7,6 @@ export const getAllNotesOfUser = async (notesWithIdList) => {
     if (notesWithIdList && notesWithIdList.length !== 0) {
       notesWithIdList.forEach(async (note) => {
         if (note) {
-          console.log("calling note id ", note, typeof note);
           let noteData = await getNotes(note);
           if (noteData !== null) {
             notesDataList.push(noteData);
@@ -48,7 +47,6 @@ export const getNotes = async (noteId) => {
 export const createNotes = async (note) => {
   try {
     if (note.id) {
-      console.log("42", note);
       await setDoc(doc(db, "notes", note.id), {
         uid: note.id,
         title: note.title,
@@ -67,7 +65,6 @@ export const createNotes = async (note) => {
 
 export const updateNotesData = async (payload) => {
   try {
-    console.log("70", payload);
     if (payload.uid) {
       const { uid, data } = payload;
       const notesRef = doc(db, "notes", uid);
@@ -87,14 +84,31 @@ export const updateNotesData = async (payload) => {
 export const deleteNotes = async (uid) => {
   try {
     if (uid) {
-      console.log("90", uid);
-      const notesRef = doc(db, "notes", uid);
-      await deleteDoc(notesRef);
+      const reference = doc(db, "notes", uid);
+      await deleteDoc(reference);
       return { message: "Success" };
     } else {
       return { message: "Invalid payload" };
     }
   } catch (err) {
     console.log("CLOUD - Deleteing Notes Err", err);
+  }
+};
+
+export const updateNotesMetaData = async (payload) => {
+  try {
+    if (payload.uid) {
+      const { uid, title, notes } = payload;
+      const notesRef = doc(db, "notes", uid);
+      await updateDoc(notesRef, {
+        title: title,
+        notes: notes,
+      });
+      return { message: "Success" };
+    } else {
+      return { message: "Invalid payload" };
+    }
+  } catch (err) {
+    console.log("CLOUD - Update Notes Meta data Err", err);
   }
 };

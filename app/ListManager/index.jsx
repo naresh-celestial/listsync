@@ -50,19 +50,21 @@ const TodoList = () => {
     return notesId;
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (uid) => {
     try {
       const savedUser = await AsyncStorage.getItem("user");
       let userObject = JSON.parse(savedUser);
-      const filteredTodos = todos.filter((todo) => todo.id !== id);
+      let filteredTodos = todos.filter((todo) => todo.uid !== uid);
       let notesIdList = getNotesId(filteredTodos);
       let udpateUserPayload = {
         uid: userObject.uid,
         notes: JSON.stringify(notesIdList),
       };
-      console.log("63", udpateUserPayload);
-      await updateUser(udpateUserPayload);
-      saveTodos(filteredTodos);
+      let updateUserResp = await updateUser(udpateUserPayload);
+      if (updateUserResp) {
+        let deleteResp = await deleteNotes(uid);
+        saveTodos(filteredTodos);
+      }
     } catch (err) {
       console.log(err);
     }
@@ -90,8 +92,8 @@ const TodoList = () => {
     router.push(`/ListManager/Collaborators?list=${list}`);
   };
 
-  const openMenu = (id) => {
-    setVisibleMenu(id);
+  const openMenu = (uid) => {
+    setVisibleMenu(uid);
   };
 
   const closeMenu = () => {
@@ -109,22 +111,28 @@ const TodoList = () => {
   };
 
   const renderTodoItem = ({ item }) => (
-    <Card key={item.id} style={styles.card} onPress={() => goToListItems(item)}>
+    <Card style={styles.card} onPress={() => goToListItems(item)}>
       <View style={styles.cardContent}>
         <Text style={styles.todoText}>{item.title}</Text>
         {/* <Text style={styles.todoText}>{item.notes}</Text> */}
         <Menu
-          visible={visibleMenu === item.id}
+          visible={visibleMenu === item.uid ? item.uid : item.id}
           onDismiss={closeMenu}
           anchor={
             <IconButton
               icon="dots-vertical"
-              onPress={() => openMenu(item.id)}
+              onPress={() => openMenu(item.uid ? item.uid : item.id)}
             />
           }
         >
-          <Menu.Item onPress={() => handleEdit(item.id)} title="Edit" />
-          <Menu.Item onPress={() => handleDelete(item.id)} title="Delete" />
+          <Menu.Item
+            onPress={() => handleEdit(item.uid ? item.uid : item.id)}
+            title="Edit"
+          />
+          <Menu.Item
+            onPress={() => handleDelete(item.uid ? item.uid : item.id)}
+            title="Delete"
+          />
           <Menu.Item
             onPress={() => emailShare(JSON.stringify(item))}
             title="Share"
