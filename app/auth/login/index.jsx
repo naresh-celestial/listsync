@@ -34,18 +34,6 @@ const LoginScreen = () => {
     }
   };
 
-  // const getUserNotes = (notesList) => {
-  //   if (notesList) {
-  //     let notesDataForUser = getAllNotesOfUser(notesList);
-  //     return notesDataForUser;
-  //     console.log("notes list", notesDataForUser);
-  //     await AsyncStorage.setItem(
-  //       "notesFromCloud",
-  //       JSON.stringify(notesDataForUser)
-  //     );
-  //   }
-  // };
-
   const validateCredentials = (email, password) => {
     if (email && password) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -80,43 +68,37 @@ const LoginScreen = () => {
 
   const handleLogin = async () => {
     try {
-      // if (email && password) {
-      // if (validateCredentials(email, password)) {
-      //call firebase method to set this if new user
-      //Login User
-      let currentUser = await getUser("PpyrD0pnkA6v9ocTF6wo");
+      if (email && password) {
+        if (validateCredentials(email, password)) {
+          //call firebase method to set this if new user
+          //Login User
+          let currentUser = await getUser("PpyrD0pnkA6v9ocTF6wo");
 
-      if (currentUser) {
-        console.log("90", currentUser);
-        let userNotes = await getAllNotesOfUser(JSON.parse(currentUser.notes));
-        if (userNotes && userNotes.length !== 0) {
-          await AsyncStorage.setItem("todos", JSON.stringify(userNotes));
+          if (currentUser) {
+            console.log("90", currentUser);
+            let userNotes = await getAllNotesOfUser(
+              JSON.parse(currentUser.notes)
+            );
+            if (userNotes && userNotes.length !== 0) {
+              await AsyncStorage.setItem("todos", JSON.stringify(userNotes));
+            } else {
+              await AsyncStorage.setItem("todos", JSON.stringify([]));
+            }
+            const { email, password, notes, uid } = currentUser;
+            await saveUserLogin({
+              email: email,
+              password: password,
+              uid: uid,
+              notes: JSON.parse(notes),
+            });
+            router.replace("ListManager");
+          }
         } else {
-          await AsyncStorage.setItem("todos", JSON.stringify([]));
+          alert("Please enter credentials");
         }
-        const { email, password, notes, uid } = currentUser;
-        await saveUserLogin({
-          email: email,
-          password: password,
-          uid: uid,
-          notes: JSON.parse(notes),
-        });
-        router.replace("ListManager");
-        //   // }
-        //   // else {
-        //   // let payload = {
-        //   //   uid: userId,
-        //   //   email: email,
-        //   //   password: password,
-        //   //Create Profile
-        //   // createProfile(payload);
+      } else {
+        alert("Please enter credentials");
       }
-      //   } else {
-      //     alert("Please enter credentials");
-      //   }
-      // } else {
-      //   alert("Please enter credentials");
-      // }
     } catch (err) {
       console.log(err);
     }
