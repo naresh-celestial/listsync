@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Text,
   Pressable,
+  ToastAndroid,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
@@ -27,12 +28,11 @@ const AddTodo = () => {
       let todos = storedTodos ? JSON.parse(storedTodos) : [];
 
       if (userObject) {
-        console.log("30", userObject);
         const { uid, email } = userObject;
         let defaultItems = getDefaultItems(email);
 
         const newTodo = {
-          id: Date.now().toString(),
+          uid: Date.now().toString(),
           title,
           notes,
           data: JSON.stringify(defaultItems),
@@ -41,21 +41,40 @@ const AddTodo = () => {
         };
 
         //Create the Notes in Cloud
-        await createNotes(newTodo);
+        let createNotesResp = await createNotes(newTodo);
 
-        //update the notes Id to user in Cloud
-        userObject.notes.push(newTodo.id);
-        await updateUser({ uid: uid, notes: JSON.stringify(userObject.notes) });
-        if (todos.length !== 0) {
-          todos.push(newTodo);
+        if (createNotesResp?.message === "Success") {
+          //update the notes Id to user in Cloud
+          userObject.notes.push(newTodo.uid);
+
+          let updateNoteIdToUserResp = await updateUser({
+            uid: uid,
+            notes: JSON.stringify(userObject.notes),
+          });
+          if (updateNoteIdToUserResp?.message === "success") {
+            if (todos.length !== 0) {
+              todos.push(newTodo);
+            } else {
+              todos = [newTodo];
+            }
+
+            // const updatedTodos = [...todos, newTodo];
+            await AsyncStorage.setItem("todos", JSON.stringify(todos));
+            await AsyncStorage.setItem("user", JSON.stringify(userObject));
+            router.back(); // Go back to the list after saving
+          } else {
+            ToastAndroid.show(
+              "Error Adding Notes to User Profile, Try Again after sometime..",
+              ToastAndroid.SHORT
+            );
+          }
         } else {
-          todos = [newTodo];
+          ToastAndroid.show(
+            "Error creating Notes on Cloud, Try Again after sometime..",
+            ToastAndroid.SHORT
+          );
+          console.log("create note error resp", createNotesResp);
         }
-
-        // const updatedTodos = [...todos, newTodo];
-        await AsyncStorage.setItem("todos", JSON.stringify(todos));
-        await AsyncStorage.setItem("user", JSON.stringify(userObject));
-        router.back(); // Go back to the list after saving
       }
     } else {
       alert("Please enter all fields");

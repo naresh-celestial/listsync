@@ -35,8 +35,6 @@ const ToDoManager = () => {
 
   //state
   const [myList, setMyList] = useState([]);
-  // {id: 1, title:'First List', description:'This is the first item in the list'},
-  // {id: 2, title:'Second List', description:'This is the second item in the list'},
   const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
   //Search
   const [isSearchEnabled, setIsSerchEnabled] = useState(false);
@@ -86,7 +84,7 @@ const ToDoManager = () => {
   const [allItems, setAllItems] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
   const FlatListItem = ({ item }) => {
-    const { id, title, description, favourite, category, author } = item;
+    const { uid, title, description, favourite, category, author } = item;
     const [itemTitle, setItemTitle] = useState(title);
     const [itemDescription, setItemDescription] = useState(description);
     const [isFieldsEditable, setisFieldsEditable] = useState(false);
@@ -105,85 +103,101 @@ const ToDoManager = () => {
       allItemsTemp.push(item);
       setAllItems(allItemsTemp);
     };
-    addAllItemsToList();
+    useEffect(() => {
+      addAllItemsToList();
+    }, []);
 
     const editSaveToggle = () => {
       setisFieldsEditable(!isFieldsEditable);
     };
 
-    const saveItem = (id) => {
-      // Find the this item from the items and update the details
-      let existingitems = listData;
-      if (existingitems !== null && existingitems !== undefined) {
-        let listItems = null;
-        if (typeof existingitems.data === "string") {
-          listItems = JSON.parse(existingitems.data);
-        } else {
-          listItems = existingitems.data;
-        }
-        let thisItem = listItems.find((items) => items.id === id);
-        thisItem.title = itemTitle;
-        thisItem.description = itemDescription;
-        thisItem.category = itemCategory;
+    const saveItem = (uid) => {
+      try {
+        // Find the this item from the items and update the details
+        let existingitems = listData;
+        if (existingitems !== null && existingitems !== undefined) {
+          let listItems = existingitems.data;
+          if (typeof existingitems.data === "string") {
+            listItems = JSON.parse(existingitems.data);
+          }
 
-        //Get index of this item in the list
-        const findObject = (listItem) => {
-          return listItem === thisItem;
-        };
-        let indexOfSelectedList = listItems.findIndex(findObject);
-        listItems[indexOfSelectedList] = thisItem;
+          let thisItem = listItems.find((items) => items.uid === uid);
+          thisItem.title = itemTitle;
+          thisItem.description = itemDescription;
+          thisItem.category = itemCategory;
 
-        //Save to Local Storage
-        setToLocalStorage(listItems, existingitems);
-        editSaveToggle();
-      }
-    };
-
-    const deleteItem = (id) => {
-      let existingItems = listData;
-      if (existingItems !== null && existingItems !== undefined) {
-        let listItems = null;
-        if (typeof existingItems.data === "string") {
-          listItems = JSON.parse(existingItems.data);
-        } else {
-          listItems = existingItems.data;
-        }
-        console.log("152", listItems);
-
-        if (listItems.length == 1) {
-          setListData((listData) => ({ ...listData, data: [] }));
-        } else {
-          let thisItem = listItems.find((items) => items.id === id);
           //Get index of this item in the list
           const findObject = (listItem) => {
             return listItem === thisItem;
           };
-          let indexOfSelectedItem = listItems.findIndex(findObject);
+          let indexOfSelectedList = listItems.findIndex(findObject);
+          listItems[indexOfSelectedList] = thisItem;
 
-          listItems.splice(indexOfSelectedItem, 1);
-          setListData((listData) => ({ ...listData, data: listItems }));
+          listItems = JSON.stringify(listItems);
+
+          //Save to Local Storage
+          setToLocalStorage(listItems, existingitems);
+          editSaveToggle();
         }
-        setToLocalStorage(listItems, listData);
+      } catch (err) {
+        console.log("Save Item Err - ", err);
       }
     };
 
-    const setFavouriteItem = (id) => {
+    const deleteItem = (uid) => {
+      try {
+        let existingItems = listData;
+        if (existingItems !== null && existingItems !== undefined) {
+          let listItems;
+          if (typeof existingItems.data === "string") {
+            listItems = JSON.parse(existingItems.data);
+          } else {
+            listItems = existingItems.data;
+          }
+
+          if (listItems.length == 1) {
+            setListData((listData) => ({ ...listData, data: [] }));
+          } else {
+            let thisItem = listItems.find((items) => items.uid === uid);
+            //Get index of this item in the list
+            const findObject = (listItem) => {
+              return listItem === thisItem;
+            };
+            let indexOfSelectedItem = listItems.findIndex(findObject);
+
+            listItems.splice(indexOfSelectedItem, 1);
+            setListData((listData) => ({ ...listData, data: listItems }));
+          }
+          listItems = JSON.stringify(listItems);
+          setToLocalStorage(listItems, listData);
+        }
+      } catch (err) {
+        console.log("Deleting Item err - ", err);
+      }
+    };
+
+    const setFavouriteItem = (uid) => {
       setIsItemFavourite(!isItemFavourite);
 
       // Find the this item from the items and update the details
-      let existingitems = listData;
-      let thisItem = existingitems.data.find((items) => items.id === id);
+      let allItems = listData;
+      let existingitems = allItems.data;
+      if (typeof existingitems === "string") {
+        existingitems = JSON.parse(existingitems);
+      }
+      let thisItem = existingitems.find((items) => items.uid === uid);
       thisItem.favourite = !isItemFavourite;
 
       //Get index of this item in the list
       const findObject = (listItem) => {
         return listItem === thisItem;
       };
-      let indexOfSelectedList = existingitems.data.findIndex(findObject);
-      existingitems.data[indexOfSelectedList] = thisItem;
+      let indexOfSelectedList = existingitems.findIndex(findObject);
+      existingitems[indexOfSelectedList] = thisItem;
 
+      existingitems = JSON.stringify(existingitems);
       //Save to Local Storage
-      setToLocalStorage(existingitems.data, existingitems);
+      setToLocalStorage(existingitems, allItems);
     };
 
     const onLongPress = () => {
@@ -205,7 +219,6 @@ const ToDoManager = () => {
         let indexOfSelectedList = templist.findIndex(findObject);
         templist.splice(indexOfSelectedList, 1);
       }
-      console.log("all item", templist);
       setSelectedItems(templist);
       setChecked(!checked);
     };
@@ -269,7 +282,7 @@ const ToDoManager = () => {
             ]}
           >
             <TouchableOpacity
-              onPress={() => setFavouriteItem(id)}
+              onPress={() => setFavouriteItem(uid)}
               style={styles.editIconWrapper}
             >
               {isItemFavourite ? (
@@ -285,7 +298,7 @@ const ToDoManager = () => {
               )}
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => deleteItem(id)}
+              onPress={() => deleteItem(uid)}
               style={styles.editIconWrapper}
             >
               <Image
@@ -305,7 +318,7 @@ const ToDoManager = () => {
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                onPress={() => saveItem(id)}
+                onPress={() => saveItem(uid)}
                 style={styles.editIconWrapper}
               >
                 <Image
@@ -365,7 +378,9 @@ const ToDoManager = () => {
               renderItem={(item) => {
                 return <FlatListItem key={index} item={item.item} />;
               }}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item) => {
+                return item.uid;
+              }}
               alwaysBounceVertical
             />
           </View>
@@ -399,16 +414,20 @@ const ToDoManager = () => {
     const addItem = (title, description) => {
       try {
         if (isFieldValid()) {
-          let existingListCopy = [...listData.data];
           let itemObject = {
-            id: Date.now().toString(),
+            uid: Date.now().toString(),
             title: title,
             description: description,
             favourite: false,
             category: "others",
             author: itemAuthor,
           };
+          let existingListCopy = listData.data;
+          if (typeof existingListCopy === "string") {
+            existingListCopy = JSON.parse(existingListCopy);
+          }
           existingListCopy.push(itemObject);
+          existingListCopy = JSON.stringify(existingListCopy);
           setListData((listData) => ({
             ...listData,
             data: existingListCopy,
@@ -474,9 +493,9 @@ const ToDoManager = () => {
   const ListMenu = () => {
     //List Options
     const [visibleMenu, setVisibleMenu] = useState(null);
-    const openMenu = (id) => {
+    const openMenu = (uid) => {
       console.log("open menu");
-      setVisibleMenu(id);
+      setVisibleMenu(uid);
     };
 
     const closeMenu = () => {
@@ -535,13 +554,13 @@ const ToDoManager = () => {
 
     return (
       <Menu
-        visible={visibleMenu === listData.id}
+        visible={visibleMenu === listData.uid}
         onDismiss={closeMenu}
         anchor={
           <IconButton
             iconColor="#000000"
             icon="dots-vertical"
-            onPress={() => openMenu(listData.id)}
+            onPress={() => openMenu(listData.uid)}
           />
         }
       >
@@ -570,11 +589,10 @@ const ToDoManager = () => {
   const saveNoteToCloud = async (data, listMetaData) => {
     try {
       let updatePayload = {
-        uid: listMetaData.id ? listMetaData.id : listMetaData.uid,
+        uid: listMetaData.uid,
         data: JSON.stringify(data),
       };
       let updateToCloudObject = await updateNotesData(updatePayload);
-      console.log("111", updateToCloudObject);
     } catch (err) {
       console.log("Saving to cloud Err -", err);
     }
@@ -583,7 +601,9 @@ const ToDoManager = () => {
   //Local Storage
   //Set to Local Storage
   const setToLocalStorage = async (list, listMetaData) => {
+    // console.log("list", typeof list, "meta data", listMetaData);
     try {
+      list = JSON.parse(list);
       //All Lists
       const storedTodos = await AsyncStorage.getItem("todos");
       let parsedAllData = JSON.parse(storedTodos);
@@ -611,67 +631,9 @@ const ToDoManager = () => {
       await AsyncStorage.setItem("todos", JSON.stringify(parsedAllData));
       console.log("Saved to local!");
     } catch (err) {
-      console.log(err);
+      console.log("Set to local storage Err - ", err);
     }
   };
-
-  //Add Default Items to List
-  // const addDefaultItems = () => {
-  //   try {
-  //     let itemAuthor = "";
-  //     let user = getLocalStorageItem("user");
-  //     if (user) {
-  //       itemAuthor = user.email;
-  //     }
-  //     let existingListCopy = [...listData.data];
-  //     let isListFresh = existingListCopy.length === 0 ? true : false;
-
-  //     if (isListFresh) {
-  //       let defaultItems = [
-  //         {
-  //           id: 1,
-  //           title: "Carrot",
-  //           description: "Rabbit Varient",
-  //           favourite: true,
-  //           category: "Grocery",
-  //           author: itemAuthor,
-  //         },
-  //         {
-  //           id: 2,
-  //           title: "Tomato",
-  //           description: "Apple Tomato",
-  //           favourite: true,
-  //           category: "Grocery",
-  //           author: itemAuthor,
-  //         },
-  //         {
-  //           id: 3,
-  //           title: "Onion",
-  //           description: "Egypt Onion",
-  //           favourite: true,
-  //           category: "Grocery",
-  //           author: itemAuthor,
-  //         },
-  //       ];
-
-  //       defaultItems.forEach((item) => {
-  //         existingListCopy.push(item);
-  //       });
-  //       setListData((listData) => ({
-  //         ...listData,
-  //         data: existingListCopy,
-  //       }));
-  //       console.log(listData);
-  //       setToLocalStorage(existingListCopy, listData);
-  //     }
-  //   } catch (err) {
-  //     console.log("Add Default Items - ERR", err);
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   addDefaultItems();
-  // }, []);
 
   return listData ? (
     <View style={styles.toDoContainer}>

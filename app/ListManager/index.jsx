@@ -25,7 +25,6 @@ import { updateUser } from "../firebase/controller/userController";
 
 const TodoList = () => {
   const [todos, setTodos] = useState([]);
-  const [visibleMenu, setVisibleMenu] = useState(null);
   const router = useRouter();
 
   const loadTodos = async () => {
@@ -50,58 +49,7 @@ const TodoList = () => {
     return notesId;
   };
 
-  const handleDelete = async (uid) => {
-    try {
-      const savedUser = await AsyncStorage.getItem("user");
-      let userObject = JSON.parse(savedUser);
-      let filteredTodos = todos.filter((todo) => todo.uid !== uid);
-      let notesIdList = getNotesId(filteredTodos);
-      let udpateUserPayload = {
-        uid: userObject.uid,
-        notes: JSON.stringify(notesIdList),
-      };
-      let updateUserResp = await updateUser(udpateUserPayload);
-      if (updateUserResp) {
-        let deleteResp = await deleteNotes(uid);
-        saveTodos(filteredTodos);
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-  const handleEdit = (id) => {
-    closeMenu();
-    router.push(`/ListManager/EditTodo?id=${id}`);
-  };
-
-  const handleShare = async (text) => {
-    try {
-      await Share.share({ message: text });
-    } catch (error) {
-      alert(error.message);
-    }
-  };
-
-  const emailShare = (content) => {
-    Linking.openURL("mailto:support@example.com", (title = { content }));
-  };
-
-  const viewCollaborators = (list) => {
-    closeMenu();
-    router.push(`/ListManager/Collaborators?list=${list}`);
-  };
-
-  const openMenu = (uid) => {
-    setVisibleMenu(uid);
-  };
-
-  const closeMenu = () => {
-    setVisibleMenu(null);
-  };
-
   const goToListItems = async (data) => {
-    closeMenu();
     try {
       let stringData = JSON.stringify(data);
       router.push(`/ToDoManager?item=${stringData}`);
@@ -110,42 +58,98 @@ const TodoList = () => {
     }
   };
 
-  const renderTodoItem = ({ item }) => (
-    <Card style={styles.card} onPress={() => goToListItems(item)}>
-      <View style={styles.cardContent}>
-        <Text style={styles.todoText}>{item.title}</Text>
-        {/* <Text style={styles.todoText}>{item.notes}</Text> */}
-        <Menu
-          visible={visibleMenu === item.uid ? item.uid : item.id}
-          onDismiss={closeMenu}
-          anchor={
-            <IconButton
-              iconColor="#000000"
-              icon="dots-vertical"
-              onPress={() => openMenu(item.uid ? item.uid : item.id)}
-            />
+  const ListMenu = ({ listData }) => {
+    const [visibleMenu, setVisibleMenu] = useState(null);
+
+    const openMenu = (uid) => {
+      setVisibleMenu(uid);
+    };
+
+    const closeMenu = () => {
+      setVisibleMenu(null);
+    };
+
+    const handleDelete = async (uid) => {
+      try {
+        const savedUser = await AsyncStorage.getItem("user");
+        let userObject = JSON.parse(savedUser);
+        let filteredTodos = todos.filter((todo) => todo.uid !== uid);
+        let notesIdList = getNotesId(filteredTodos);
+        let udpateUserPayload = {
+          uid: userObject.uid,
+          notes: JSON.stringify(notesIdList),
+        };
+        let updateUserResp = await updateUser(udpateUserPayload);
+        if (updateUserResp?.message === "success") {
+          let deleteResp = await deleteNotes(uid);
+          if (deleteResp?.message === "Success") {
+            saveTodos(filteredTodos);
           }
-        >
-          <Menu.Item
-            onPress={() => handleEdit(item.uid ? item.uid : item.id)}
-            title="Edit"
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    };
+
+    const handleEdit = (uid) => {
+      closeMenu();
+      router.push(`/ListManager/EditTodo?id=${uid}`);
+    };
+
+    const handleShare = async (text) => {
+      try {
+        await Share.share({ message: text });
+      } catch (error) {
+        alert(error.message);
+      }
+    };
+
+    const emailShare = (content) => {
+      Linking.openURL("mailto:support@example.com", (title = { content }));
+    };
+
+    const viewCollaborators = (list) => {
+      closeMenu();
+      router.push(`/ListManager/Collaborators?list=${list}`);
+    };
+
+    return (
+      <Menu
+        visible={visibleMenu === listData.uid}
+        onDismiss={closeMenu}
+        anchor={
+          <IconButton
+            iconColor="#000000"
+            icon="dots-vertical"
+            onPress={() => openMenu(listData.uid)}
           />
-          <Menu.Item
-            onPress={() => handleDelete(item.uid ? item.uid : item.id)}
-            title="Delete"
-          />
-          <Menu.Item
-            onPress={() => emailShare(JSON.stringify(item))}
-            title="Share"
-          />
-          <Menu.Item
-            onPress={() => viewCollaborators(JSON.stringify(item))}
-            title="Settings"
-          />
-        </Menu>
-      </View>
-    </Card>
-  );
+        }
+      >
+        <Menu.Item onPress={() => handleEdit(listData.uid)} title="Edit" />
+        <Menu.Item onPress={() => handleDelete(listData.uid)} title="Delete" />
+        <Menu.Item
+          onPress={() => emailShare(JSON.stringify(listData))}
+          title="Share"
+        />
+        <Menu.Item
+          onPress={() => viewCollaborators(JSON.stringify(listData))}
+          title="Settings"
+        />
+      </Menu>
+    );
+  };
+
+  const RenderTodoItem = ({ item }) => {
+    let listData = item.item;
+    return (
+      <Card style={styles.card} onPress={() => goToListItems(listData)}>
+        <View style={styles.cardContent}>
+          <Text style={styles.todoText}>{listData.title}</Text>
+          <ListMenu listData={listData} />
+        </View>
+      </Card>
+    );
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -156,17 +160,6 @@ const TodoList = () => {
   return (
     <>
       <View style={styles.container}>
-        {/* <View style={styles.header}>
-          <View style={styles.optionsSection}>
-            <Text style={styles.optionsText}>0</Text>
-          </View>
-          <View style={styles.headerSection}>
-              <Text style={styles.title}>Lists</Text>
-          </View>
-          <View style={styles.optionsSection}>
-              <Text style={styles.optionsText}>O</Text>
-          </View>
-      </View> */}
         <View style={styles.body}>
           <View style={styles.bodyTitleSection}>
             <Title style={styles.bodyTitle}>My Lists</Title>
@@ -174,8 +167,13 @@ const TodoList = () => {
           {todos.length !== 0 ? (
             <FlatList
               data={todos}
-              keyExtractor={(item) => item.id}
-              renderItem={renderTodoItem}
+              keyExtractor={(item) => {
+                return item.uid;
+              }}
+              renderItem={(item) => {
+                return <RenderTodoItem item={item} />;
+              }}
+              alwaysBounceVertical
             />
           ) : (
             <Text style={styles.emptyListText}>No Items in the list.</Text>

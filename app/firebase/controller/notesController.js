@@ -46,9 +46,9 @@ export const getNotes = async (noteId) => {
 
 export const createNotes = async (note) => {
   try {
-    if (note.id) {
-      await setDoc(doc(db, "notes", note.id), {
-        uid: note.id,
+    if (note.uid) {
+      await setDoc(doc(db, "notes", note.uid), {
+        uid: note.uid,
         title: note.title,
         notes: note.notes,
         data: note.data,
@@ -56,10 +56,13 @@ export const createNotes = async (note) => {
         collaborators: note.collaborators,
       });
       return { message: "Success" };
+    } else {
+      console.log("Invalid Note Id - ", err);
+      return { message: "Error", payload: note };
     }
   } catch (err) {
     console.log("Create Notes Error - ", err);
-    return { message: "Error" };
+    return { message: "Error", payload: note };
   }
 };
 

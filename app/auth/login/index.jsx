@@ -1,5 +1,5 @@
 import { Link, useNavigation } from "@react-navigation/native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   StatusBar,
   Dimensions,
+  ToastAndroid,
 } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -29,7 +30,6 @@ const LoginScreen = () => {
 
   const saveUserLogin = async (userLogin) => {
     if (userLogin) {
-      console.log("user login", userLogin);
       await AsyncStorage.setItem("user", JSON.stringify(userLogin));
     }
   };
@@ -68,41 +68,50 @@ const LoginScreen = () => {
 
   const handleLogin = async () => {
     try {
-      if (email && password) {
-        if (validateCredentials(email, password)) {
-          //call firebase method to set this if new user
-          //Login User
-          let currentUser = await getUser("PpyrD0pnkA6v9ocTF6wo");
+      // if (email && password) {
+      //   if (validateCredentials(email, password)) {
+      //call firebase method to set this if new user
+      //Login User
+      let currentUser = await getUser("VQdX2v9h6n4AOhwY06lg");
 
-          if (currentUser) {
-            console.log("90", currentUser);
-            let userNotes = await getAllNotesOfUser(
-              JSON.parse(currentUser.notes)
-            );
-            if (userNotes && userNotes.length !== 0) {
-              await AsyncStorage.setItem("todos", JSON.stringify(userNotes));
-            } else {
-              await AsyncStorage.setItem("todos", JSON.stringify([]));
-            }
-            const { email, password, notes, uid } = currentUser;
-            await saveUserLogin({
-              email: email,
-              password: password,
-              uid: uid,
-              notes: JSON.parse(notes),
-            });
-            router.replace("ListManager");
-          }
+      if (currentUser) {
+        let userNotes = await getAllNotesOfUser(JSON.parse(currentUser.notes));
+        if (userNotes && userNotes.length !== 0) {
+          await AsyncStorage.setItem("todos", JSON.stringify(userNotes));
         } else {
-          alert("Please enter credentials");
+          await AsyncStorage.setItem("todos", JSON.stringify([]));
         }
-      } else {
-        alert("Please enter credentials");
+        const { email, password, notes, uid } = currentUser;
+        await saveUserLogin({
+          email: email,
+          password: password,
+          uid: uid,
+          notes: JSON.parse(notes),
+        });
+        router.replace("ListManager");
       }
+      //   } else {
+      //     alert("Please enter credentials");
+      //   }
+      // } else {
+      //   alert("Please enter credentials");
+      // }
     } catch (err) {
       console.log(err);
     }
   };
+
+  useEffect(() => {
+    const checkIsUserAvailable = async () => {
+      let userObject = await AsyncStorage.getItem("user");
+      if (userObject) {
+        ToastAndroid.show("Welcome", ToastAndroid.SHORT);
+        router.replace("ListManager");
+        console.log("user available", userObject);
+      }
+    };
+    checkIsUserAvailable();
+  }, []);
 
   return (
     <View style={styles.container}>

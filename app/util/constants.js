@@ -1,6 +1,6 @@
 export let defaultItems = [
   {
-    id: 1,
+    uid: Math.round(Math.random() * (99999999 - 10000000) + 10000000),
     title: "Carrot",
     description: "Rabbit Varient",
     favourite: true,
@@ -8,7 +8,7 @@ export let defaultItems = [
     author: "",
   },
   {
-    id: 2,
+    uid: Math.round(Math.random() * (99999999 - 10000000) + 10000000),
     title: "Tomato",
     description: "Apple Tomato",
     favourite: true,
@@ -16,7 +16,7 @@ export let defaultItems = [
     author: "",
   },
   {
-    id: 3,
+    uid: Math.round(Math.random() * (99999999 - 10000000) + 10000000),
     title: "Onion",
     description: "Egypt Onion",
     favourite: true,
