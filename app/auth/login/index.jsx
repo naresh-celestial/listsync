@@ -68,34 +68,36 @@ const LoginScreen = () => {
 
   const handleLogin = async () => {
     try {
-      // if (email && password) {
-      //   if (validateCredentials(email, password)) {
-      //call firebase method to set this if new user
-      //Login User
-      let currentUser = await getUser("VQdX2v9h6n4AOhwY06lg");
+      if (email && password) {
+        if (validateCredentials(email, password)) {
+          //call firebase method to set this if new user
+          //Login User
+          let currentUser = await getUser("VQdX2v9h6n4AOhwY06lg");
 
-      if (currentUser) {
-        let userNotes = await getAllNotesOfUser(JSON.parse(currentUser.notes));
-        if (userNotes && userNotes.length !== 0) {
-          await AsyncStorage.setItem("todos", JSON.stringify(userNotes));
+          if (currentUser) {
+            let userNotes = await getAllNotesOfUser(
+              JSON.parse(currentUser.notes)
+            );
+            if (userNotes && userNotes.length !== 0) {
+              await AsyncStorage.setItem("todos", JSON.stringify(userNotes));
+            } else {
+              await AsyncStorage.setItem("todos", JSON.stringify([]));
+            }
+            const { email, password, notes, uid } = currentUser;
+            await saveUserLogin({
+              email: email,
+              password: password,
+              uid: uid,
+              notes: JSON.parse(notes),
+            });
+            router.replace("ListManager");
+          }
         } else {
-          await AsyncStorage.setItem("todos", JSON.stringify([]));
+          alert("Please enter credentials");
         }
-        const { email, password, notes, uid } = currentUser;
-        await saveUserLogin({
-          email: email,
-          password: password,
-          uid: uid,
-          notes: JSON.parse(notes),
-        });
-        router.replace("ListManager");
+      } else {
+        alert("Please enter credentials");
       }
-      //   } else {
-      //     alert("Please enter credentials");
-      //   }
-      // } else {
-      //   alert("Please enter credentials");
-      // }
     } catch (err) {
       console.log(err);
     }
