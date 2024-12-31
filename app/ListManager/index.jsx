@@ -22,6 +22,7 @@ import { Title } from "react-native-paper";
 import BottomNavigationBar from "../navigation/BottomNavigationBar";
 import { deleteNotes } from "../firebase/controller/notesController";
 import { updateUser } from "../firebase/controller/userController";
+import Header from "./components/Header";
 
 const TodoList = () => {
   const [todos, setTodos] = useState([]);
@@ -131,10 +132,6 @@ const TodoList = () => {
           onPress={() => emailShare(JSON.stringify(listData))}
           title="Share"
         />
-        <Menu.Item
-          onPress={() => viewCollaborators(JSON.stringify(listData))}
-          title="Settings"
-        />
       </Menu>
     );
   };
@@ -159,11 +156,9 @@ const TodoList = () => {
 
   return (
     <>
+      <Header />
       <View style={styles.container}>
         <View style={styles.body}>
-          <View style={styles.bodyTitleSection}>
-            <Title style={styles.bodyTitle}>My Lists</Title>
-          </View>
           {todos.length !== 0 ? (
             <FlatList
               data={todos}
@@ -238,7 +233,7 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 0.9,
-    marginTop: 10,
+    marginTop: 0,
   },
   card: {
     borderRadius: 0,
