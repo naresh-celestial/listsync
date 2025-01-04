@@ -21,16 +21,30 @@ const WelcomeScreen = () => {
 
         <TouchableOpacity
           style={styles.signInButtonGoogle}
-          // onPress={() => router.push("/auth/login")}
+          onPress={() => router.replace("ListManager")}
         >
           <GoogleSignInScreen />
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.createAccountButton}
-          onPress={() => router.push("/auth/login")}
+          style={[styles.createAccountButton, { marginBottom: 10 }]}
+          onPress={() => router.replace("ListManager")}
         >
           <Text style={styles.createAccountButtonText}>Create an account</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            {
+              marginBottom: 0,
+              width: "100%",
+              backgroundColor: "transparent",
+              padding: 2,
+              alignItems: "center",
+            },
+          ]}
+          onPress={() => router.replace("ListManager")}
+        >
+          <Text style={styles.createAccountButtonText}>Continue as Guest</Text>
         </TouchableOpacity>
 
         {/* Bottom Link */}

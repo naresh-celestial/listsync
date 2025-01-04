@@ -1,19 +1,19 @@
-import { View, Text, StyleSheet, Image, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
+import PropTypes from "prop-types";
 import { useRouter } from "expo-router";
+import { MaterialIcons } from "@expo/vector-icons";
 
 const BottomNavigationBar = ({ page }) => {
   const router = useRouter();
   const config = [
     {
       name: "Home",
-      filledIcon: require("../../assets/images/homeFilled.png"),
-      unFilledIcon: require("../../assets/images/homeUnFilled.png"),
+      icon: "home",
       route: "ListManager",
     },
     {
       name: "Settings",
-      filledIcon: require("../../assets/images/settingsFilled.png"),
-      unFilledIcon: require("../../assets/images/settingsUnfilled.png"),
+      icon: "settings",
       route: "Settings",
     },
   ];
@@ -26,18 +26,27 @@ const BottomNavigationBar = ({ page }) => {
   return (
     <View style={styles.navigationContainer}>
       {config.map((route, index) => {
-        let isIconFilled = route.unFilledIcon;
-        if (page === route.name) {
-          isIconFilled = route.filledIcon;
-        }
+        const isSelected = page === route.name;
         return (
           <Pressable
-            key={index}
+            key={route.name}
             style={styles.navigationItem}
             onPress={() => routeHandler(route)}
           >
-            <Image style={styles.navigationItemImage} source={isIconFilled} />
-            <Text style={styles.navigationItemText}>{route.name}</Text>
+            <MaterialIcons
+              name={route.icon}
+              size={30}
+              color={isSelected ? "blue" : "black"}
+              style={styles.navigationItemIcon}
+            />
+            <Text
+              style={[
+                styles.navigationItemText,
+                isSelected && { color: "blue" },
+              ]}
+            >
+              {route.name}
+            </Text>
           </Pressable>
         );
       })}
@@ -68,7 +77,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  navigationItemImage: {
+  navigationItemIcon: {
     height: 30,
     width: 30,
   },
@@ -76,5 +85,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 });
+BottomNavigationBar.propTypes = {
+  page: PropTypes.string.isRequired,
+};
 
 export default BottomNavigationBar;

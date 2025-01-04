@@ -17,6 +17,7 @@
       "bundleIdentifier": "com.celestial.listSync"
     },
     "android": {
+      "jsEngine": "hermes",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -33,7 +34,8 @@
       "expo-dev-client",
       "expo-router",
       "expo-font",
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      "expo-dev-menu"
     ],
     "experiments": {
       "typedRoutes": true

@@ -4,7 +4,7 @@ import { View, Text, TextInput, Image } from "react-native";
 import { IconButton } from "react-native-paper";
 import headerStyles from "../../../constants/Headerstyles";
 
-const Header = ({ username, searchQuery, setSearchQuery }) => {
+const Header = ({ username, searchQuery = "", setSearchQuery }) => {
   return (
     <View style={headerStyles.headerContainer}>
       <View style={headerStyles.topRow}>
@@ -34,8 +34,8 @@ const Header = ({ username, searchQuery, setSearchQuery }) => {
 };
 Header.propTypes = {
   username: PropTypes.string,
-  searchQuery: PropTypes.string.isRequired,
-  setSearchQuery: PropTypes.func.isRequired,
+  searchQuery: PropTypes.string,
+  setSearchQuery: PropTypes.func,
 };
 
 export default Header;

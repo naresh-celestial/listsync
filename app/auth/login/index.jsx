@@ -109,7 +109,7 @@ const LoginScreen = () => {
       if (userObject) {
         ToastAndroid.show("Welcome", ToastAndroid.SHORT);
         router.replace("ListManager");
-        console.log("user available", userObject);
+        // console.log("user available", userObject);
       }
     };
     checkIsUserAvailable();
