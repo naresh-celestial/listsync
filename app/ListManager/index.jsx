@@ -93,10 +93,11 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     fontFamily: "Rubik",
-    marginTop: 20,
+    backgroundColor: "#F5F5F5",
   },
   body: {
     flex: 1,
+    marginTop: -5,
   },
   emptyListText: {
     textAlign: "center",

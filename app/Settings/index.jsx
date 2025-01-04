@@ -74,6 +74,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     fontFamily: "Rubik",
+    backgroundColor: "#F5F5F5",
   },
   settingRow: {
     flexDirection: "row",

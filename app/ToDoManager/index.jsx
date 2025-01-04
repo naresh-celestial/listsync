@@ -19,20 +19,30 @@ import {
   PaperProvider,
   Checkbox,
 } from "react-native-paper";
-import { useRouter, useLocalSearchParams, useNavigation } from "expo-router";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import {
+  useRouter,
+  useLocalSearchParams,
+  useNavigation,
+  useFocusEffect,
+} from "expo-router";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LongPressGestureHandler } from "react-native-gesture-handler";
 import { getLocalStorageItem } from ".././util/helper";
 import { updateNotesData } from "../firebase/controller/notesController";
+import ToDoRecommendation from "./components/ToDoRecommendation";
+import { useIsFocused } from "@react-navigation/native";
 const ToDoManager = () => {
   //router
   const router = useRouter();
+  const isFocused = useIsFocused();
   const searchParams = useLocalSearchParams();
-  const itemsData = searchParams.item; // Access id directly if available
+  const itemsData = searchParams.item;
+
   //hooks
   const [listData, setListData] = useState(null);
-
+  const [suggestionList, setSuggestionList] = useState([]);
+  const [isEditModeOn, setEditModeOn] = useState(false);
   //state
   const [myList, setMyList] = useState([]);
   const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
@@ -43,6 +53,36 @@ const ToDoManager = () => {
   useEffect(() => {
     setListData(JSON.parse(itemsData));
   }, [itemsData]);
+
+  //Add Suggestion List to Main List
+  useEffect(() => {
+    const getSuggestionSelectedList = async () => {
+      let suggestionSelectedList = await AsyncStorage.getItem("suggestionList");
+      if (suggestionSelectedList !== null && listData) {
+        //Add suggestion selected items to all items list
+        let listMetaData = listData;
+        let listArray =
+          typeof listData.data == "string"
+            ? JSON.parse(listData.data)
+            : listData.data;
+
+        let suggestionSelectedArray = JSON.parse(suggestionSelectedList);
+        let combinedList = [...listArray, ...suggestionSelectedArray];
+
+        let combineListString = JSON.stringify(combinedList);
+        //Update the List in Local
+        setListData((listData) => ({
+          ...listData,
+          data: combineListString,
+        }));
+
+        //Update the List in Cloud
+        await setToLocalStorage(combineListString, listMetaData);
+        await AsyncStorage.removeItem("suggestionList");
+      }
+    };
+    getSuggestionSelectedList();
+  }, [isFocused]);
 
   //Controller functions
   const addItems = () => {
@@ -96,6 +136,11 @@ const ToDoManager = () => {
     );
     const [itemAuthor, setItemAuthor] = useState(author);
     const [checked, setChecked] = useState(selectedItems.includes(item));
+    const [editMode, setEditMode] = useState(false);
+
+    useEffect(() => {
+      setEditMode(isEditModeOn);
+    }, [isEditModeOn]);
 
     //Add all items to separate list
     const addAllItemsToList = () => {
@@ -250,15 +295,19 @@ const ToDoManager = () => {
               value={itemTitle}
               onChangeText={setItemTitle}
             />
-            <TextInput
-              style={[styles.listItemDescription]}
-              editable={isFieldsEditable}
-              value={itemDescription}
-              onChangeText={setItemDescription}
-            />
-            <Text style={styles.authorTitle}>
-              Author - {itemAuthor?.length == 0 ? "unknown" : itemAuthor}
-            </Text>
+            {itemDescription?.length !== 0 ? (
+              <TextInput
+                style={[styles.listItemDescription]}
+                editable={isFieldsEditable}
+                value={itemDescription}
+                onChangeText={setItemDescription}
+              />
+            ) : null}
+            {itemAuthor?.length !== 0 ? (
+              <Text style={styles.authorTitle}>
+                Author - {itemAuthor?.length == 0 ? "unknown" : itemAuthor}
+              </Text>
+            ) : null}
             {isFieldsEditable ? (
               <View style={styles.categoryContainer}>
                 <Image
@@ -297,36 +346,40 @@ const ToDoManager = () => {
                 />
               )}
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => deleteItem(uid)}
-              style={styles.editIconWrapper}
-            >
-              <Image
-                style={styles.editIcon}
-                source={require("../../assets/images/delete.png")}
-              />
-            </TouchableOpacity>
-            {!isFieldsEditable ? (
-              <TouchableOpacity
-                onPress={() => editSaveToggle()}
-                style={styles.editIconWrapper}
-              >
-                <Image
-                  style={styles.editIcon}
-                  source={require("../../assets/images/pencil.png")}
-                />
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                onPress={() => saveItem(uid)}
-                style={styles.editIconWrapper}
-              >
-                <Image
-                  style={styles.editIcon}
-                  source={require("../../assets/images/tick.png")}
-                />
-              </TouchableOpacity>
-            )}
+            {editMode ? (
+              <View style={styles.editDeleteActionContainer}>
+                <TouchableOpacity
+                  onPress={() => deleteItem(uid)}
+                  style={styles.editIconWrapper}
+                >
+                  <Image
+                    style={styles.editIcon}
+                    source={require("../../assets/images/delete.png")}
+                  />
+                </TouchableOpacity>
+                {!isFieldsEditable ? (
+                  <TouchableOpacity
+                    onPress={() => editSaveToggle()}
+                    style={styles.editIconWrapper}
+                  >
+                    <Image
+                      style={styles.editIcon}
+                      source={require("../../assets/images/pencil.png")}
+                    />
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => saveItem(uid)}
+                    style={styles.editIconWrapper}
+                  >
+                    <Image
+                      style={styles.editIcon}
+                      source={require("../../assets/images/tick.png")}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : null}
           </View>
         </View>
       </Pressable>
@@ -353,43 +406,51 @@ const ToDoManager = () => {
         listItems = listDataObject.data;
       }
       let groupedItems = groupCategory(listItems);
-      return Object.entries(groupedItems).map((item, index) => {
-        let key = item[0];
-        let value = item[1];
-        return (
-          <View key={index}>
-            <Text style={styles.categoryTitle}>{key}</Text>
-            <FlatList
-              data={value.filter((items) => {
-                for (let key in items) {
-                  if (key === "title") {
-                    if (
-                      items[key]
-                        .toLowerCase()
-                        .includes(searchQuery.toLocaleLowerCase())
-                    ) {
-                      return true;
+      if (Object.keys(groupedItems).length !== 0) {
+        return Object.entries(groupedItems).map((item, index) => {
+          let key = item[0];
+          let value = item[1];
+          return (
+            <View key={index}>
+              <Text style={styles.categoryTitle}>{key}</Text>
+              {value
+                .filter((items) => {
+                  for (let key in items) {
+                    if (key === "title") {
+                      if (
+                        items[key]
+                          .toLowerCase()
+                          .includes(searchQuery.toLocaleLowerCase())
+                      ) {
+                        return true;
+                      }
                     }
                   }
-                }
-                return false;
-              })}
-              contentContainerStyle={styles.flatListStyles}
-              renderItem={(item) => {
-                return <FlatListItem key={index} item={item.item} />;
-              }}
-              keyExtractor={(item) => {
-                return item.uid;
-              }}
-              alwaysBounceVertical
-            />
+                  return false;
+                })
+                .map((item, index) => {
+                  return <FlatListItem key={index} item={item} />;
+                })}
+            </View>
+          );
+        });
+      } else {
+        return (
+          <View
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text>No Items in the List</Text>
           </View>
         );
-      });
+      }
     } else {
       return <Text style={styles.emptyListText}>No Items in the list.</Text>;
     }
-  }, [listData, isSelectionOn, selectedItems]);
+  }, [listData, isSelectionOn, selectedItems, isEditModeOn, searchQuery]);
 
   const NewListItemField = () => {
     const [itemTitle, onTitleChange] = useState("");
@@ -494,7 +555,6 @@ const ToDoManager = () => {
     //List Options
     const [visibleMenu, setVisibleMenu] = useState(null);
     const openMenu = (uid) => {
-      console.log("open menu");
       setVisibleMenu(uid);
     };
 
@@ -505,6 +565,10 @@ const ToDoManager = () => {
     const deleteAllItems = async () => {
       setListData((listData) => ({ ...listData, data: [] }));
       setToLocalStorage([], listData);
+    };
+
+    const enableEditMode = () => {
+      setEditModeOn(!isEditModeOn);
     };
 
     const cancelSelection = () => {
@@ -565,7 +629,13 @@ const ToDoManager = () => {
         }
       >
         {!isSelectionOn ? (
-          <Menu.Item onPress={() => deleteAllItems()} title="Delete All" />
+          <>
+            <Menu.Item onPress={() => deleteAllItems()} title="Delete All" />
+            <Menu.Item
+              onPress={() => enableEditMode()}
+              title={!isEditModeOn ? "Edit" : "Cancel"}
+            />
+          </>
         ) : (
           <>
             {selectedItems.length !== 0 ? (
@@ -671,25 +741,16 @@ const ToDoManager = () => {
               </Pressable>
             ) : null}
             <ListMenu />
-            {/* <Menu
-              visible={visible}
-              onDismiss={closeMenu}
-              anchorPosition="bottom"
-              mode="elevated"
-              anchor={<IconButton icon="dots-vertical" onPress={openMenu} />}
-            >
-              <Menu.Item onPress={() => {}} title="Item 1" />
-              <Menu.Item onPress={() => {}} title="Item 2" />
-              <Divider />
-              <Menu.Item onPress={() => {}} title="Item 3" />
-            </Menu> */}
           </View>
         </View>
         <View style={styles.bodyList}>
-          {isSearchEnabled ? <SearchBar /> : null}
-          {RenderFlatListView}
-          {isAddFieldOpen ? <NewListItemField /> : null}
-          <ListShare />
+          {/* <ListShare /> */}
+          <ScrollView style={styles.bodyScrollViewStyles}>
+            {isSearchEnabled ? <SearchBar /> : null}
+            {RenderFlatListView}
+            {isAddFieldOpen ? <NewListItemField /> : null}
+            <ToDoRecommendation />
+          </ScrollView>
         </View>
       </View>
       <View style={styles.footer}></View>
@@ -704,6 +765,7 @@ const styles = StyleSheet.create({
     height: "100%",
     marginTop: 35,
     display: "flex",
+    backgroundColor: "#F5F5F5",
   },
   header: {
     flex: 0.05,
@@ -785,7 +847,7 @@ const styles = StyleSheet.create({
   searchBar: {
     width: "100%",
     height: 50,
-    marginTop: -20,
+    marginTop: -10,
     padding: 10,
     marginBottom: 5,
   },
@@ -847,16 +909,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   textSection: {
-    flex: 0.8,
+    flex: 0.6,
     height: "100%",
   },
   actionsSection: {
-    flex: 0.1,
+    flex: 0.4,
     display: "flex",
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginRight: 50,
+    justifyContent: "flex-end",
+    marginRight: 10,
   },
   nonSelectable: {
     userSelect: "none",
@@ -865,10 +927,18 @@ const styles = StyleSheet.create({
   editIconWrapper: {
     width: 35,
     height: 35,
+    marginLeft: 2,
+    marginRight: 2,
     borderRadius: 50,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+  },
+  editDeleteActionContainer: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
   },
   listItemTitle: {
     color: "black",
@@ -1036,6 +1106,12 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     // backgroundColor: "white",
     alignItems: "center",
+  },
+  bodyList: {
+    flex: 1,
+  },
+  bodyScrollViewStyles: {
+    flex: 1,
   },
 });
 
