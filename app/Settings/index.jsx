@@ -49,14 +49,14 @@ const SettingsScreen = () => {
               onValueChange={handleNotificationsToggle}
             />
           </View>
-          <View style={styles.settingRow}>
+          {/* <View style={styles.settingRow}>
             <Text style={styles.settingLabel}>Dark Mode</Text>
             <Switch
               thumbColor="#007BFF"
               value={darkModeEnabled}
               onValueChange={handleDarkModeToggle}
             />
-          </View>
+          </View> */}
           <View style={styles.logoutSection}>
             <Pressable style={styles.logout} onPress={logout}>
               <Text style={styles.logoutText}>LOGOUT</Text>
