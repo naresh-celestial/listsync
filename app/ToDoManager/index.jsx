@@ -291,14 +291,16 @@ const ToDoManager = () => {
           <View style={styles.textSection}>
             <TextInput
               style={[styles.listItemTitle]}
+              placeholder="title"
               editable={isFieldsEditable}
               value={itemTitle}
               onChangeText={setItemTitle}
             />
-            {itemDescription?.length !== 0 ? (
+            {editMode || itemDescription?.length !== 0 ? (
               <TextInput
                 style={[styles.listItemDescription]}
                 editable={isFieldsEditable}
+                placeholder="description..."
                 value={itemDescription}
                 onChangeText={setItemDescription}
               />
@@ -330,22 +332,24 @@ const ToDoManager = () => {
               isSelectionOn ? styles.nonSelectable : "",
             ]}
           >
-            <TouchableOpacity
-              onPress={() => setFavouriteItem(uid)}
-              style={styles.editIconWrapper}
-            >
-              {isItemFavourite ? (
-                <Image
-                  style={styles.editIcon}
-                  source={require("../../assets/images/starFilled.png")}
-                />
-              ) : (
-                <Image
-                  style={[styles.editIcon, styles.unFilledStar]}
-                  source={require("../../assets/images/starUnFilled.png")}
-                />
-              )}
-            </TouchableOpacity>
+            {!editMode ? (
+              <TouchableOpacity
+                onPress={() => setFavouriteItem(uid)}
+                style={styles.editIconWrapper}
+              >
+                {isItemFavourite ? (
+                  <Image
+                    style={styles.editIcon}
+                    source={require("../../assets/images/starFilled.png")}
+                  />
+                ) : (
+                  <Image
+                    style={[styles.editIcon, styles.unFilledStar]}
+                    source={require("../../assets/images/starUnFilled.png")}
+                  />
+                )}
+              </TouchableOpacity>
+            ) : null}
             {editMode ? (
               <View style={styles.editDeleteActionContainer}>
                 <TouchableOpacity
