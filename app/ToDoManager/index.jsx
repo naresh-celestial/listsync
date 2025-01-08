@@ -32,6 +32,7 @@ import { getLocalStorageItem } from ".././util/helper";
 import { updateNotesData } from "../firebase/controller/notesController";
 import ToDoRecommendation from "./components/ToDoRecommendation";
 import { useIsFocused } from "@react-navigation/native";
+import { Colors } from "../../constants/Colors";
 const ToDoManager = () => {
   //router
   const router = useRouter();
@@ -43,6 +44,8 @@ const ToDoManager = () => {
   const [listData, setListData] = useState(null);
   const [suggestionList, setSuggestionList] = useState([]);
   const [isEditModeOn, setEditModeOn] = useState(false);
+  const [searchItemAvailable, setSearchItemAvailable] = useState(false);
+  const [listItems, setListItems] = useState([]);
   //state
   const [myList, setMyList] = useState([]);
   const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
@@ -94,20 +97,23 @@ const ToDoManager = () => {
     setIsSerchEnabled(!isSearchEnabled);
   };
 
-  const SearchBar = () => {
-    return (
-      <View style={styles.searchBar}>
-        <TextInput
-          autoFocus
-          placeholderTextColor="#fff"
-          style={styles.serchField}
-          placeholder="Search Items"
-          value={searchQuery}
-          onChangeText={(value) => setSearchQuery(value)}
-        />
-      </View>
-    );
-  };
+  const SearchBar = useMemo(() => {
+    if (isSearchEnabled) {
+      return (
+        <View style={styles.searchBar}>
+          <TextInput
+            placeholderTextColor="#fff"
+            style={styles.serchField}
+            placeholder="Search Items"
+            value={searchQuery}
+            onChangeText={(value) => setSearchQuery(value)}
+          />
+        </View>
+      );
+    } else {
+      return null;
+    }
+  }, [isSearchEnabled, searchQuery, setSearchQuery]);
 
   //Components
   //Floating Add Item Button
@@ -410,6 +416,7 @@ const ToDoManager = () => {
         listItems = listDataObject.data;
       }
       let groupedItems = groupCategory(listItems);
+      setListItems(groupedItems);
       if (Object.keys(groupedItems).length !== 0) {
         return Object.entries(groupedItems).map((item, index) => {
           let key = item[0];
@@ -426,10 +433,12 @@ const ToDoManager = () => {
                           .toLowerCase()
                           .includes(searchQuery.toLocaleLowerCase())
                       ) {
+                        setSearchItemAvailable(true);
                         return true;
                       }
                     }
                   }
+                  setSearchItemAvailable(false);
                   return false;
                 })
                 .map((item, index) => {
@@ -709,6 +718,68 @@ const ToDoManager = () => {
     }
   };
 
+  //TapToAddItem
+  const addNewItem = async (title) => {
+    const getAuthor = async () => {
+      const user = await AsyncStorage.getItem("user");
+      let userObject = JSON.parse(user);
+      return userObject.email;
+    };
+
+    try {
+      if (title.length !== 0) {
+        let itemAuthor = await getAuthor();
+        let itemObject = {
+          uid: Date.now().toString(),
+          title: title,
+          description: "",
+          favourite: false,
+          category: "Others",
+          author: itemAuthor,
+        };
+        let existingListCopy = listData.data;
+        if (typeof existingListCopy === "string") {
+          existingListCopy = JSON.parse(existingListCopy);
+        }
+        existingListCopy.push(itemObject);
+        existingListCopy = JSON.stringify(existingListCopy);
+        setListData((listData) => ({
+          ...listData,
+          data: existingListCopy,
+        }));
+        setToLocalStorage(existingListCopy, listData);
+        setSearchQuery("");
+      }
+    } catch (err) {
+      console.log("err", err);
+    }
+  };
+  const TapToAddItem = useMemo(() => {
+    let isitemAvailable = Object.values(listItems).find((cate) =>
+      cate.find((item) => item.title.toLowerCase() == searchQuery.toLowerCase())
+    );
+
+    const createItem = () => {
+      addNewItem(searchQuery);
+    };
+    if (searchQuery.length !== 0 && isitemAvailable === undefined) {
+      return (
+        <View style={styles.tapToAddWrapper}>
+          <Pressable
+            onPress={() => createItem()}
+            style={styles.tapToAddContainer}
+          >
+            <Text style={styles.tapToAddText}>
+              Add <Text style={styles.tapToAddHighlight}>{searchQuery}</Text>
+            </Text>
+          </Pressable>
+        </View>
+      );
+    } else {
+      return null;
+    }
+  }, [searchQuery, listItems]);
+
   return listData ? (
     <View style={styles.toDoContainer}>
       <View style={styles.header}>
@@ -750,10 +821,11 @@ const ToDoManager = () => {
         <View style={styles.bodyList}>
           {/* <ListShare /> */}
           <ScrollView style={styles.bodyScrollViewStyles}>
-            {isSearchEnabled ? <SearchBar /> : null}
+            {SearchBar}
             {RenderFlatListView}
+            {TapToAddItem}
             {isAddFieldOpen ? <NewListItemField /> : null}
-            <ToDoRecommendation />
+            {/* <ToDoRecommendation /> */}
           </ScrollView>
         </View>
       </View>
@@ -1116,6 +1188,28 @@ const styles = StyleSheet.create({
   },
   bodyScrollViewStyles: {
     flex: 1,
+  },
+  tapToAddWrapper: {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  tapToAddContainer: {
+    width: "90%",
+    backgroundColor: Colors.light.buttonBackground,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 10,
+    borderRadius: 10,
+  },
+  tapToAddText: { color: "white", fontSize: 16 },
+  tapToAddHighlight: {
+    color: "white",
+    fontWeight: "bold",
   },
 });
 

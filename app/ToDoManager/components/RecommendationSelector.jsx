@@ -6,9 +6,10 @@ import {
   SafeAreaView,
   ScrollView,
   Pressable,
+  TextInput,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors } from "../../../constants/Colors";
 
@@ -19,6 +20,7 @@ const RecommendationSelector = () => {
 
   const [items, setItems] = useState(null);
   const [selectedItems, setSelectedItems] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (itemsData) {
@@ -100,6 +102,34 @@ const RecommendationSelector = () => {
     );
   };
 
+  const SearchBar = () => {
+    return (
+      <View style={styles.searchBar}>
+        <TextInput
+          autoFocus
+          placeholderTextColor="#fff"
+          style={styles.serchField}
+          placeholder="Search Items"
+          value={searchQuery}
+          onChangeText={(value) => setSearchQuery(value)}
+        />
+      </View>
+    );
+  };
+
+  const RenderCategoryItems = useMemo(() => {
+    if (items !== null) {
+      const filteredData = items.data.filter((item) =>
+        item.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      return filteredData
+        .sort((first, second) => first.localeCompare(second))
+        .map((card, index) => {
+          return <CardItem key={index} item={card} index={index} />;
+        });
+    }
+  }, [searchQuery, items]);
+
   //Handlers
   const goBackWithSelectedList = () => {
     AsyncStorage.setItem("suggestionList", JSON.stringify(selectedItems));
@@ -128,12 +158,9 @@ const RecommendationSelector = () => {
         </View>
         <ScrollView style={styles.body}>
           <>
+            <SearchBar />
             <Text style={styles.description}>From A-Z</Text>
-            {items.data
-              .sort((first, second) => first.localeCompare(second))
-              .map((card, index) => {
-                return <CardItem key={index} item={card} index={index} />;
-              })}
+            {RenderCategoryItems}
           </>
         </ScrollView>
       </SafeAreaView>
@@ -226,6 +253,19 @@ const styles = StyleSheet.create({
   lastCardindex: {
     borderBottomLeftRadius: 10,
     borderBottomRightRadius: 10,
+  },
+  searchBar: {
+    width: "100%",
+    height: 50,
+    marginBottom: 5,
+  },
+  serchField: {
+    width: "100%",
+    height: 35,
+    backgroundColor: "#333333",
+    paddingLeft: 10,
+    borderRadius: 10,
+    color: "white",
   },
 });
 export default RecommendationSelector;
