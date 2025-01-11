@@ -1,4 +1,4 @@
 @echo off
-cd /d "D:\Tap Global\BillManagementApp"
+cd /d "C:\Code\listsync>"
 npx expo start -c
 

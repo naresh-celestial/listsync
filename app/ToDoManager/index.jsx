@@ -19,27 +19,73 @@ import {
   PaperProvider,
   Checkbox,
 } from "react-native-paper";
-import { useRouter, useLocalSearchParams, useNavigation } from "expo-router";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import {
+  useRouter,
+  useLocalSearchParams,
+  useNavigation,
+  useFocusEffect,
+} from "expo-router";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LongPressGestureHandler } from "react-native-gesture-handler";
-
+import { getLocalStorageItem } from ".././util/helper";
+import { updateNotesData } from "../firebase/controller/notesController";
+import ToDoRecommendation from "./components/ToDoRecommendation";
+import { useIsFocused } from "@react-navigation/native";
+import { Colors } from "../../constants/Colors";
 const ToDoManager = () => {
   //router
   const router = useRouter();
+  const isFocused = useIsFocused();
   const searchParams = useLocalSearchParams();
-  const itemsData = searchParams.item; // Access id directly if available
-  //hooks
-  const [listData, setListData] = useState(JSON.parse(itemsData));
+  const itemsData = searchParams.item;
 
+  //hooks
+  const [listData, setListData] = useState(null);
+  const [suggestionList, setSuggestionList] = useState([]);
+  const [isEditModeOn, setEditModeOn] = useState(false);
+  const [searchItemAvailable, setSearchItemAvailable] = useState(false);
+  const [listItems, setListItems] = useState([]);
   //state
   const [myList, setMyList] = useState([]);
-  // {id: 1, title:'First List', description:'This is the first item in the list'},
-  //     {id: 2, title:'Second List', description:'This is the second item in the list'},
   const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
   //Search
   const [isSearchEnabled, setIsSerchEnabled] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    setListData(JSON.parse(itemsData));
+  }, [itemsData]);
+
+  //Add Suggestion List to Main List
+  useEffect(() => {
+    const getSuggestionSelectedList = async () => {
+      let suggestionSelectedList = await AsyncStorage.getItem("suggestionList");
+      if (suggestionSelectedList !== null && listData) {
+        //Add suggestion selected items to all items list
+        let listMetaData = listData;
+        let listArray =
+          typeof listData.data == "string"
+            ? JSON.parse(listData.data)
+            : listData.data;
+
+        let suggestionSelectedArray = JSON.parse(suggestionSelectedList);
+        let combinedList = [...listArray, ...suggestionSelectedArray];
+
+        let combineListString = JSON.stringify(combinedList);
+        //Update the List in Local
+        setListData((listData) => ({
+          ...listData,
+          data: combineListString,
+        }));
+
+        //Update the List in Cloud
+        await setToLocalStorage(combineListString, listMetaData);
+        await AsyncStorage.removeItem("suggestionList");
+      }
+    };
+    getSuggestionSelectedList();
+  }, [isFocused]);
 
   //Controller functions
   const addItems = () => {
@@ -51,20 +97,23 @@ const ToDoManager = () => {
     setIsSerchEnabled(!isSearchEnabled);
   };
 
-  const SearchBar = () => {
-    return (
-      <View style={styles.searchBar}>
-        <TextInput
-          autoFocus
-          placeholderTextColor="#fff"
-          style={styles.serchField}
-          placeholder="Search Items"
-          value={searchQuery}
-          onChangeText={(value) => setSearchQuery(value)}
-        />
-      </View>
-    );
-  };
+  const SearchBar = useMemo(() => {
+    if (isSearchEnabled) {
+      return (
+        <View style={styles.searchBar}>
+          <TextInput
+            placeholderTextColor="#fff"
+            style={styles.serchField}
+            placeholder="Search Items"
+            value={searchQuery}
+            onChangeText={(value) => setSearchQuery(value)}
+          />
+        </View>
+      );
+    } else {
+      return null;
+    }
+  }, [isSearchEnabled, searchQuery, setSearchQuery]);
 
   //Components
   //Floating Add Item Button
@@ -81,7 +130,7 @@ const ToDoManager = () => {
   const [allItems, setAllItems] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
   const FlatListItem = ({ item }) => {
-    const { id, title, description, favourite, category, author } = item;
+    const { uid, title, description, favourite, category, author } = item;
     const [itemTitle, setItemTitle] = useState(title);
     const [itemDescription, setItemDescription] = useState(description);
     const [isFieldsEditable, setisFieldsEditable] = useState(false);
@@ -93,6 +142,11 @@ const ToDoManager = () => {
     );
     const [itemAuthor, setItemAuthor] = useState(author);
     const [checked, setChecked] = useState(selectedItems.includes(item));
+    const [editMode, setEditMode] = useState(false);
+
+    useEffect(() => {
+      setEditMode(isEditModeOn);
+    }, [isEditModeOn]);
 
     //Add all items to separate list
     const addAllItemsToList = () => {
@@ -100,60 +154,101 @@ const ToDoManager = () => {
       allItemsTemp.push(item);
       setAllItems(allItemsTemp);
     };
-    addAllItemsToList();
+    useEffect(() => {
+      addAllItemsToList();
+    }, []);
 
     const editSaveToggle = () => {
       setisFieldsEditable(!isFieldsEditable);
     };
 
-    const saveItem = (id) => {
-      // Find the this item from the items and update the details
-      let existingitems = listData;
-      let thisItem = existingitems.data.find((items) => items.id === id);
-      thisItem.title = itemTitle;
-      thisItem.description = itemDescription;
-      thisItem.category = itemCategory;
+    const saveItem = (uid) => {
+      try {
+        // Find the this item from the items and update the details
+        let existingitems = listData;
+        if (existingitems !== null && existingitems !== undefined) {
+          let listItems = existingitems.data;
+          if (typeof existingitems.data === "string") {
+            listItems = JSON.parse(existingitems.data);
+          }
 
-      //Get index of this item in the list
-      const findObject = (listItem) => {
-        return listItem === thisItem;
-      };
-      let indexOfSelectedList = existingitems.data.findIndex(findObject);
-      existingitems.data[indexOfSelectedList] = thisItem;
+          let thisItem = listItems.find((items) => items.uid === uid);
+          thisItem.title = itemTitle;
+          thisItem.description = itemDescription;
+          thisItem.category = itemCategory;
 
-      //Save to Local Storage
-      setToLocalStorage(existingitems.data, existingitems);
-      editSaveToggle();
-    };
+          //Get index of this item in the list
+          const findObject = (listItem) => {
+            return listItem === thisItem;
+          };
+          let indexOfSelectedList = listItems.findIndex(findObject);
+          listItems[indexOfSelectedList] = thisItem;
 
-    const deleteItem = (id) => {
-      let tempList = [...listData.data];
-      if (tempList.length == 1) {
-        setListData((listData) => ({ ...listData, data: [] }));
-      } else {
-        tempList.splice(id - 1, 1);
-        setListData((listData) => ({ ...listData, data: tempList }));
+          listItems = JSON.stringify(listItems);
+
+          //Save to Local Storage
+          setToLocalStorage(listItems, existingitems);
+          editSaveToggle();
+        }
+      } catch (err) {
+        console.log("Save Item Err - ", err);
       }
-      setToLocalStorage(tempList, listData);
     };
 
-    const setFavouriteItem = (id) => {
+    const deleteItem = (uid) => {
+      try {
+        let existingItems = listData;
+        if (existingItems !== null && existingItems !== undefined) {
+          let listItems;
+          if (typeof existingItems.data === "string") {
+            listItems = JSON.parse(existingItems.data);
+          } else {
+            listItems = existingItems.data;
+          }
+
+          if (listItems.length == 1) {
+            setListData((listData) => ({ ...listData, data: [] }));
+          } else {
+            let thisItem = listItems.find((items) => items.uid === uid);
+            //Get index of this item in the list
+            const findObject = (listItem) => {
+              return listItem === thisItem;
+            };
+            let indexOfSelectedItem = listItems.findIndex(findObject);
+
+            listItems.splice(indexOfSelectedItem, 1);
+            setListData((listData) => ({ ...listData, data: listItems }));
+          }
+          listItems = JSON.stringify(listItems);
+          setToLocalStorage(listItems, listData);
+        }
+      } catch (err) {
+        console.log("Deleting Item err - ", err);
+      }
+    };
+
+    const setFavouriteItem = (uid) => {
       setIsItemFavourite(!isItemFavourite);
 
       // Find the this item from the items and update the details
-      let existingitems = listData;
-      let thisItem = existingitems.data.find((items) => items.id === id);
+      let allItems = listData;
+      let existingitems = allItems.data;
+      if (typeof existingitems === "string") {
+        existingitems = JSON.parse(existingitems);
+      }
+      let thisItem = existingitems.find((items) => items.uid === uid);
       thisItem.favourite = !isItemFavourite;
 
       //Get index of this item in the list
       const findObject = (listItem) => {
         return listItem === thisItem;
       };
-      let indexOfSelectedList = existingitems.data.findIndex(findObject);
-      existingitems.data[indexOfSelectedList] = thisItem;
+      let indexOfSelectedList = existingitems.findIndex(findObject);
+      existingitems[indexOfSelectedList] = thisItem;
 
+      existingitems = JSON.stringify(existingitems);
       //Save to Local Storage
-      setToLocalStorage(existingitems.data, existingitems);
+      setToLocalStorage(existingitems, allItems);
     };
 
     const onLongPress = () => {
@@ -175,7 +270,6 @@ const ToDoManager = () => {
         let indexOfSelectedList = templist.findIndex(findObject);
         templist.splice(indexOfSelectedList, 1);
       }
-      console.log("all item", templist);
       setSelectedItems(templist);
       setChecked(!checked);
     };
@@ -203,19 +297,25 @@ const ToDoManager = () => {
           <View style={styles.textSection}>
             <TextInput
               style={[styles.listItemTitle]}
+              placeholder="title"
               editable={isFieldsEditable}
               value={itemTitle}
               onChangeText={setItemTitle}
             />
-            <TextInput
-              style={[styles.listItemDescription]}
-              editable={isFieldsEditable}
-              value={itemDescription}
-              onChangeText={setItemDescription}
-            />
-            <Text style={styles.authorTitle}>
-              Author - {itemAuthor?.length == 0 ? "unknown" : itemAuthor}
-            </Text>
+            {editMode || itemDescription?.length !== 0 ? (
+              <TextInput
+                style={[styles.listItemDescription]}
+                editable={isFieldsEditable}
+                placeholder="description..."
+                value={itemDescription}
+                onChangeText={setItemDescription}
+              />
+            ) : null}
+            {itemAuthor?.length !== 0 ? (
+              <Text style={styles.authorTitle}>
+                Author - {itemAuthor?.length == 0 ? "unknown" : itemAuthor}
+              </Text>
+            ) : null}
             {isFieldsEditable ? (
               <View style={styles.categoryContainer}>
                 <Image
@@ -238,52 +338,58 @@ const ToDoManager = () => {
               isSelectionOn ? styles.nonSelectable : "",
             ]}
           >
-            <TouchableOpacity
-              onPress={() => setFavouriteItem(id)}
-              style={styles.editIconWrapper}
-            >
-              {isItemFavourite ? (
-                <Image
-                  style={styles.editIcon}
-                  source={require("../../assets/images/starFilled.png")}
-                />
-              ) : (
-                <Image
-                  style={[styles.editIcon, styles.unFilledStar]}
-                  source={require("../../assets/images/starUnFilled.png")}
-                />
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => deleteItem(id)}
-              style={styles.editIconWrapper}
-            >
-              <Image
-                style={styles.editIcon}
-                source={require("../../assets/images/delete.png")}
-              />
-            </TouchableOpacity>
-            {!isFieldsEditable ? (
+            {!editMode ? (
               <TouchableOpacity
-                onPress={() => editSaveToggle()}
+                onPress={() => setFavouriteItem(uid)}
                 style={styles.editIconWrapper}
               >
-                <Image
-                  style={styles.editIcon}
-                  source={require("../../assets/images/pencil.png")}
-                />
+                {isItemFavourite ? (
+                  <Image
+                    style={styles.editIcon}
+                    source={require("../../assets/images/starFilled.png")}
+                  />
+                ) : (
+                  <Image
+                    style={[styles.editIcon, styles.unFilledStar]}
+                    source={require("../../assets/images/starUnFilled.png")}
+                  />
+                )}
               </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                onPress={() => saveItem(id)}
-                style={styles.editIconWrapper}
-              >
-                <Image
-                  style={styles.editIcon}
-                  source={require("../../assets/images/tick.png")}
-                />
-              </TouchableOpacity>
-            )}
+            ) : null}
+            {editMode ? (
+              <View style={styles.editDeleteActionContainer}>
+                <TouchableOpacity
+                  onPress={() => deleteItem(uid)}
+                  style={styles.editIconWrapper}
+                >
+                  <Image
+                    style={styles.editIcon}
+                    source={require("../../assets/images/delete.png")}
+                  />
+                </TouchableOpacity>
+                {!isFieldsEditable ? (
+                  <TouchableOpacity
+                    onPress={() => editSaveToggle()}
+                    style={styles.editIconWrapper}
+                  >
+                    <Image
+                      style={styles.editIcon}
+                      source={require("../../assets/images/pencil.png")}
+                    />
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => saveItem(uid)}
+                    style={styles.editIconWrapper}
+                  >
+                    <Image
+                      style={styles.editIcon}
+                      source={require("../../assets/images/tick.png")}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : null}
           </View>
         </View>
       </Pressable>
@@ -291,7 +397,7 @@ const ToDoManager = () => {
   };
   const groupCategory = (list) => {
     let groupedObjects = {};
-    list.forEach((list) => {
+    Object.values(list).forEach((list) => {
       if (!groupedObjects[list.category]) {
         groupedObjects[list.category] = [];
       }
@@ -301,44 +407,63 @@ const ToDoManager = () => {
   };
   //Flat List Component
   const RenderFlatListView = useMemo(() => {
-    if (listData !== undefined && listData.data.length !== 0) {
-      let groupedItems = groupCategory(listData.data);
-      return Object.entries(groupedItems).map((item, index) => {
-        // console.log("new", item);
-        let key = item[0];
-        let value = item[1];
-        return (
-          <View key={index}>
-            <Text style={styles.categoryTitle}>{key}</Text>
-            <FlatList
-              data={value.filter((items) => {
-                for (let key in items) {
-                  if (key === "title") {
-                    if (
-                      items[key]
-                        .toLowerCase()
-                        .includes(searchQuery.toLocaleLowerCase())
-                    ) {
-                      return true;
+    let listDataObject = listData;
+    if (listDataObject !== null && listDataObject !== undefined) {
+      let listItems = null;
+      if (typeof listDataObject.data === "string") {
+        listItems = JSON.parse(listDataObject.data);
+      } else {
+        listItems = listDataObject.data;
+      }
+      let groupedItems = groupCategory(listItems);
+      setListItems(groupedItems);
+      if (Object.keys(groupedItems).length !== 0) {
+        return Object.entries(groupedItems).map((item, index) => {
+          let key = item[0];
+          let value = item[1];
+          return (
+            <View key={index}>
+              <Text style={styles.categoryTitle}>{key}</Text>
+              {value
+                .filter((items) => {
+                  for (let key in items) {
+                    if (key === "title") {
+                      if (
+                        items[key]
+                          .toLowerCase()
+                          .includes(searchQuery.toLocaleLowerCase())
+                      ) {
+                        setSearchItemAvailable(true);
+                        return true;
+                      }
                     }
                   }
-                }
-                return false;
-              })}
-              contentContainerStyle={styles.flatListStyles}
-              renderItem={(item) => {
-                return <FlatListItem item={item.item} />;
-              }}
-              keyExtractor={(item) => item.id}
-              alwaysBounceVertical
-            />
+                  setSearchItemAvailable(false);
+                  return false;
+                })
+                .map((item, index) => {
+                  return <FlatListItem key={index} item={item} />;
+                })}
+            </View>
+          );
+        });
+      } else {
+        return (
+          <View
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text>No Items in the List</Text>
           </View>
         );
-      });
+      }
     } else {
       return <Text style={styles.emptyListText}>No Items in the list.</Text>;
     }
-  }, [listData, isSelectionOn, selectedItems]);
+  }, [listData, isSelectionOn, selectedItems, isEditModeOn, searchQuery]);
 
   const NewListItemField = () => {
     const [itemTitle, onTitleChange] = useState("");
@@ -363,16 +488,20 @@ const ToDoManager = () => {
     const addItem = (title, description) => {
       try {
         if (isFieldValid()) {
-          let existingListCopy = [...listData.data];
           let itemObject = {
-            id: existingListCopy.length + 1,
+            uid: Date.now().toString(),
             title: title,
             description: description,
             favourite: false,
             category: "others",
             author: itemAuthor,
           };
+          let existingListCopy = listData.data;
+          if (typeof existingListCopy === "string") {
+            existingListCopy = JSON.parse(existingListCopy);
+          }
           existingListCopy.push(itemObject);
+          existingListCopy = JSON.stringify(existingListCopy);
           setListData((listData) => ({
             ...listData,
             data: existingListCopy,
@@ -438,17 +567,21 @@ const ToDoManager = () => {
   const ListMenu = () => {
     //List Options
     const [visibleMenu, setVisibleMenu] = useState(null);
-    const openMenu = (id) => {
-      console.log("open menu");
-      setVisibleMenu(id);
+    const openMenu = (uid) => {
+      setVisibleMenu(uid);
     };
 
     const closeMenu = () => {
       setVisibleMenu(null);
     };
 
-    const deleteAllItems = () => {
+    const deleteAllItems = async () => {
       setListData((listData) => ({ ...listData, data: [] }));
+      setToLocalStorage([], listData);
+    };
+
+    const enableEditMode = () => {
+      setEditModeOn(!isEditModeOn);
     };
 
     const cancelSelection = () => {
@@ -498,70 +631,71 @@ const ToDoManager = () => {
 
     return (
       <Menu
-        visible={visibleMenu === listData.id}
+        visible={visibleMenu === listData.uid}
         onDismiss={closeMenu}
         anchor={
           <IconButton
+            iconColor="#000000"
             icon="dots-vertical"
-            onPress={() => openMenu(listData.id)}
+            onPress={() => openMenu(listData.uid)}
           />
         }
       >
         {!isSelectionOn ? (
-          <Menu.Item
-            style={styles.options}
-            onPress={() => deleteAllItems()}
-            title="Delete All"
-          />
+          <>
+            <Menu.Item onPress={() => deleteAllItems()} title="Delete All" />
+            <Menu.Item
+              onPress={() => enableEditMode()}
+              title={!isEditModeOn ? "Edit" : "Cancel"}
+            />
+          </>
         ) : (
           <>
             {selectedItems.length !== 0 ? (
-              <Menu.Item
-                style={styles.options}
-                onPress={deleteSelectedItems}
-                title="Delete"
-              />
+              <Menu.Item onPress={deleteSelectedItems} title="Delete" />
             ) : null}
-            <Menu.Item
-              style={styles.options}
-              onPress={selectAllItems}
-              title="Select All"
-            />
-            <Menu.Item
-              style={styles.options}
-              onPress={unSelectAllItems}
-              title="UnSelect All"
-            />
+            <Menu.Item onPress={selectAllItems} title="Select All" />
+            <Menu.Item onPress={unSelectAllItems} title="UnSelect All" />
             {/* <Menu.Item
-              style={styles.options}
               onPress={invertSelection}
               title="Invert Selection"
             /> */}
             <Divider />
-            <Menu.Item
-              style={styles.options}
-              onPress={cancelSelection}
-              title="Cancel"
-            />
+            <Menu.Item onPress={cancelSelection} title="Cancel" />
           </>
         )}
       </Menu>
     );
   };
 
+  //Cloud Actions
+  const saveNoteToCloud = async (data, listMetaData) => {
+    try {
+      let updatePayload = {
+        uid: listMetaData.uid,
+        data: JSON.stringify(data),
+      };
+      let updateToCloudObject = await updateNotesData(updatePayload);
+    } catch (err) {
+      console.log("Saving to cloud Err -", err);
+    }
+  };
+
   //Local Storage
   //Set to Local Storage
   const setToLocalStorage = async (list, listMetaData) => {
+    // console.log("list", typeof list, "meta data", listMetaData);
     try {
+      list = JSON.parse(list);
       //All Lists
       const storedTodos = await AsyncStorage.getItem("todos");
       let parsedAllData = JSON.parse(storedTodos);
 
       //this list meta data
-      const { id } = listMetaData;
+      const { uid } = listMetaData;
 
       //Find "this" list from all lists
-      let selectedData = parsedAllData.find((item) => item.id === id);
+      let selectedData = parsedAllData.find((item) => item.uid === uid);
 
       //Set the current items to list
       selectedData.data = list;
@@ -573,12 +707,78 @@ const ToDoManager = () => {
       let indexOfSelectedList = parsedAllData.findIndex(findObject);
       parsedAllData[indexOfSelectedList] = selectedData;
 
+      await saveNoteToCloud(
+        parsedAllData[indexOfSelectedList].data,
+        listMetaData
+      );
       await AsyncStorage.setItem("todos", JSON.stringify(parsedAllData));
       console.log("Saved to local!");
     } catch (err) {
-      console.log(err);
+      console.log("Set to local storage Err - ", err);
     }
   };
+
+  //TapToAddItem
+  const addNewItem = async (title) => {
+    const getAuthor = async () => {
+      const user = await AsyncStorage.getItem("user");
+      let userObject = JSON.parse(user);
+      return userObject.email;
+    };
+
+    try {
+      if (title.length !== 0) {
+        let itemAuthor = await getAuthor();
+        let itemObject = {
+          uid: Date.now().toString(),
+          title: title,
+          description: "",
+          favourite: false,
+          category: "Others",
+          author: itemAuthor,
+        };
+        let existingListCopy = listData.data;
+        if (typeof existingListCopy === "string") {
+          existingListCopy = JSON.parse(existingListCopy);
+        }
+        existingListCopy.push(itemObject);
+        existingListCopy = JSON.stringify(existingListCopy);
+        setListData((listData) => ({
+          ...listData,
+          data: existingListCopy,
+        }));
+        setToLocalStorage(existingListCopy, listData);
+        setSearchQuery("");
+      }
+    } catch (err) {
+      console.log("err", err);
+    }
+  };
+  const TapToAddItem = useMemo(() => {
+    let isitemAvailable = Object.values(listItems).find((cate) =>
+      cate.find((item) => item.title.toLowerCase() == searchQuery.toLowerCase())
+    );
+
+    const createItem = () => {
+      addNewItem(searchQuery);
+    };
+    if (searchQuery.length !== 0 && isitemAvailable === undefined) {
+      return (
+        <View style={styles.tapToAddWrapper}>
+          <Pressable
+            onPress={() => createItem()}
+            style={styles.tapToAddContainer}
+          >
+            <Text style={styles.tapToAddText}>
+              Add <Text style={styles.tapToAddHighlight}>{searchQuery}</Text>
+            </Text>
+          </Pressable>
+        </View>
+      );
+    } else {
+      return null;
+    }
+  }, [searchQuery, listItems]);
 
   return listData ? (
     <View style={styles.toDoContainer}>
@@ -616,25 +816,17 @@ const ToDoManager = () => {
               </Pressable>
             ) : null}
             <ListMenu />
-            {/* <Menu
-              visible={visible}
-              onDismiss={closeMenu}
-              anchorPosition="bottom"
-              mode="elevated"
-              anchor={<IconButton icon="dots-vertical" onPress={openMenu} />}
-            >
-              <Menu.Item onPress={() => {}} title="Item 1" />
-              <Menu.Item onPress={() => {}} title="Item 2" />
-              <Divider />
-              <Menu.Item onPress={() => {}} title="Item 3" />
-            </Menu> */}
           </View>
         </View>
         <View style={styles.bodyList}>
-          {isSearchEnabled ? <SearchBar /> : null}
-          {RenderFlatListView}
-          {isAddFieldOpen ? <NewListItemField /> : null}
-          <ListShare />
+          {/* <ListShare /> */}
+          <ScrollView style={styles.bodyScrollViewStyles}>
+            {SearchBar}
+            {RenderFlatListView}
+            {TapToAddItem}
+            {isAddFieldOpen ? <NewListItemField /> : null}
+            {/* <ToDoRecommendation /> */}
+          </ScrollView>
         </View>
       </View>
       <View style={styles.footer}></View>
@@ -647,8 +839,9 @@ const styles = StyleSheet.create({
   toDoContainer: {
     width: "100%",
     height: "100%",
-    marginTop: 20,
+    marginTop: 35,
     display: "flex",
+    backgroundColor: "#F5F5F5",
   },
   header: {
     flex: 0.05,
@@ -730,7 +923,7 @@ const styles = StyleSheet.create({
   searchBar: {
     width: "100%",
     height: 50,
-    marginTop: -20,
+    marginTop: -10,
     padding: 10,
     marginBottom: 5,
   },
@@ -749,6 +942,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
     height: 50,
     paddingTop: 5,
+    color: "black",
   },
   listItemEditable: {
     width: "93%",
@@ -791,16 +985,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   textSection: {
-    flex: 0.8,
+    flex: 0.6,
     height: "100%",
   },
   actionsSection: {
-    flex: 0.1,
+    flex: 0.4,
     display: "flex",
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginRight: 50,
+    justifyContent: "flex-end",
+    marginRight: 10,
   },
   nonSelectable: {
     userSelect: "none",
@@ -809,10 +1003,18 @@ const styles = StyleSheet.create({
   editIconWrapper: {
     width: 35,
     height: 35,
+    marginLeft: 2,
+    marginRight: 2,
     borderRadius: 50,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+  },
+  editDeleteActionContainer: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
   },
   listItemTitle: {
     color: "black",
@@ -980,6 +1182,34 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     // backgroundColor: "white",
     alignItems: "center",
+  },
+  bodyList: {
+    flex: 1,
+  },
+  bodyScrollViewStyles: {
+    flex: 1,
+  },
+  tapToAddWrapper: {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  tapToAddContainer: {
+    width: "90%",
+    backgroundColor: Colors.light.buttonBackground,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 10,
+    borderRadius: 10,
+  },
+  tapToAddText: { color: "white", fontSize: 16 },
+  tapToAddHighlight: {
+    color: "white",
+    fontWeight: "bold",
   },
 });
 

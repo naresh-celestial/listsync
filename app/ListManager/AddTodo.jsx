@@ -6,10 +6,14 @@ import {
   StyleSheet,
   Text,
   Pressable,
+  ToastAndroid,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { Divider } from "react-native-paper";
+import { createNotes } from "../firebase/controller/notesController";
+import { getDefaultItems } from "../util/helper";
+import { updateUser } from "../firebase/controller/userController";
 
 const AddTodo = () => {
   const [title, setTitle] = useState("");
@@ -20,30 +24,58 @@ const AddTodo = () => {
     if (title.length !== 0 && notes.length !== 0) {
       const storedTodos = await AsyncStorage.getItem("todos");
       const savedUser = await AsyncStorage.getItem("user");
-      console.log("14", savedUser);
       let userObject = JSON.parse(savedUser);
-
       let todos = storedTodos ? JSON.parse(storedTodos) : [];
-      const newTodo = {
-        id: Date.now().toString(),
-        title,
-        notes,
-        data: [],
-        admin: userObject.email,
-        collaborators: [userObject.email],
-      };
 
-      console.log("27", newTodo);
+      if (userObject) {
+        const { uid, email } = userObject;
+        let defaultItems = getDefaultItems(email);
 
-      if (todos.length !== 0) {
-        todos.push(newTodo);
-      } else {
-        todos = [newTodo];
+        const newTodo = {
+          uid: Date.now().toString(),
+          title,
+          notes,
+          data: JSON.stringify(defaultItems),
+          admin: email,
+          collaborators: [email],
+        };
+
+        //Create the Notes in Cloud
+        let createNotesResp = await createNotes(newTodo);
+
+        if (createNotesResp?.message === "Success") {
+          //update the notes Id to user in Cloud
+          userObject.notes.push(newTodo.uid);
+
+          let updateNoteIdToUserResp = await updateUser({
+            uid: uid,
+            notes: JSON.stringify(userObject.notes),
+          });
+          if (updateNoteIdToUserResp?.message === "success") {
+            if (todos.length !== 0) {
+              todos.push(newTodo);
+            } else {
+              todos = [newTodo];
+            }
+
+            // const updatedTodos = [...todos, newTodo];
+            await AsyncStorage.setItem("todos", JSON.stringify(todos));
+            await AsyncStorage.setItem("user", JSON.stringify(userObject));
+            router.back(); // Go back to the list after saving
+          } else {
+            ToastAndroid.show(
+              "Error Adding Notes to User Profile, Try Again after sometime..",
+              ToastAndroid.SHORT
+            );
+          }
+        } else {
+          ToastAndroid.show(
+            "Error creating Notes on Cloud, Try Again after sometime..",
+            ToastAndroid.SHORT
+          );
+          console.log("create note error resp", createNotesResp);
+        }
       }
-
-      // const updatedTodos = [...todos, newTodo];
-      await AsyncStorage.setItem("todos", JSON.stringify(todos));
-      router.back(); // Go back to the list after saving
     } else {
       alert("Please enter all fields");
     }
@@ -90,6 +122,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     marginTop: 10,
+    backgroundColor: "#F5F5F5",
   },
   input: {
     height: 40,

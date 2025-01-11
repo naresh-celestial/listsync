@@ -1,36 +1,26 @@
 {
   "project_info": {
-    "project_number": "919160955616",
-    "project_id": "listsync-c33d8",
-    "storage_bucket": "listsync-c33d8.firebasestorage.app"
+    "project_number": "990584278692",
+    "project_id": "list-sync-f3236",
+    "storage_bucket": "list-sync-f3236.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:919160955616:android:0561a763222fd97af82685",
+        "mobilesdk_app_id": "1:990584278692:android:264bb0fc1ef2d33c136031",
         "android_client_info": {
-          "package_name": "com.example.app"
+          "package_name": "com.celestial.listSync"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "919160955616-geuipq8qapbm0r5vokdsrcpavgn5uual.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDR04FSPqckHWmY9M5BvnHun29QuEeVkQc"
+          "current_key": "AIzaSyBa-cQpMFLnfYdOW1o46_TIxdKhf7eIqnE"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "919160955616-geuipq8qapbm0r5vokdsrcpavgn5uual.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

@@ -1,5 +1,5 @@
 import { Link, useNavigation } from "@react-navigation/native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,10 +9,19 @@ import {
   TouchableOpacity,
   StatusBar,
   Dimensions,
+  ToastAndroid,
 } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors } from "../../../constants/Colors";
+import {
+  getAllNotesOfUser,
+  getNotes,
+} from "../../firebase/controller/notesController";
+import {
+  createProfile,
+  getUser,
+} from "../../firebase/controller/userController";
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
@@ -21,17 +30,71 @@ const LoginScreen = () => {
 
   const saveUserLogin = async (userLogin) => {
     if (userLogin) {
-      console.log("user login", userLogin);
       await AsyncStorage.setItem("user", JSON.stringify(userLogin));
+    }
+  };
+
+  const validateCredentials = (email, password) => {
+    if (email && password) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (emailRegex.test(email)) {
+        // Check password availability and criteria
+        if (password && typeof password === "string" && password.length >= 6) {
+          return true;
+        } else {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    }
+  };
+
+  //Replace this function with GCC UID
+  const generateUserId = (email) => {
+    if (email) {
+      if (!email || typeof email !== "string") {
+        throw new Error("A valid email is required to generate a user ID.");
+      }
+      const emailPrefix = email.split("@")[0];
+
+      const randomNumber = Math.floor(10000 + Math.random() * 90000);
+
+      const userId = `${emailPrefix}${randomNumber}`;
+
+      return userId;
     }
   };
 
   const handleLogin = async () => {
     try {
       if (email && password) {
-        // console.log("Logging in", email, password);
-        await saveUserLogin({ email: email, password: password });
-        router.replace("ListManager");
+        if (validateCredentials(email, password)) {
+          //call firebase method to set this if new user
+          //Login User
+          let currentUser = await getUser("VQdX2v9h6n4AOhwY06lg");
+
+          if (currentUser) {
+            let userNotes = await getAllNotesOfUser(
+              JSON.parse(currentUser.notes)
+            );
+            if (userNotes && userNotes.length !== 0) {
+              await AsyncStorage.setItem("todos", JSON.stringify(userNotes));
+            } else {
+              await AsyncStorage.setItem("todos", JSON.stringify([]));
+            }
+            const { email, password, notes, uid } = currentUser;
+            await saveUserLogin({
+              email: email,
+              password: password,
+              uid: uid,
+              notes: JSON.parse(notes),
+            });
+            router.replace("ListManager");
+          }
+        } else {
+          alert("Please enter credentials");
+        }
       } else {
         alert("Please enter credentials");
       }
@@ -39,6 +102,18 @@ const LoginScreen = () => {
       console.log(err);
     }
   };
+
+  useEffect(() => {
+    const checkIsUserAvailable = async () => {
+      let userObject = await AsyncStorage.getItem("user");
+      if (userObject) {
+        ToastAndroid.show("Welcome", ToastAndroid.SHORT);
+        router.replace("ListManager");
+        // console.log("user available", userObject);
+      }
+    };
+    checkIsUserAvailable();
+  }, []);
 
   return (
     <View style={styles.container}>

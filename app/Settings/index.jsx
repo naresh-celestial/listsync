@@ -49,14 +49,14 @@ const SettingsScreen = () => {
               onValueChange={handleNotificationsToggle}
             />
           </View>
-          <View style={styles.settingRow}>
+          {/* <View style={styles.settingRow}>
             <Text style={styles.settingLabel}>Dark Mode</Text>
             <Switch
               thumbColor="#007BFF"
               value={darkModeEnabled}
               onValueChange={handleDarkModeToggle}
             />
-          </View>
+          </View> */}
           <View style={styles.logoutSection}>
             <Pressable style={styles.logout} onPress={logout}>
               <Text style={styles.logoutText}>LOGOUT</Text>
@@ -74,6 +74,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     fontFamily: "Rubik",
+    backgroundColor: "#F5F5F5",
   },
   settingRow: {
     flexDirection: "row",
@@ -100,6 +101,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
     paddingTop: 5,
     height: 50,
+    color: "black",
   },
   logoutSection: {
     width: "100%",

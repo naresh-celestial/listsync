@@ -14,15 +14,16 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.app"
+      "bundleIdentifier": "com.celestial.listSync"
     },
     "android": {
+      "jsEngine": "hermes",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "googleServicesFile": "./google-services.json",
-      "package": "com.example.app"
+      "package": "com.celestial.listSync"
     },
     "web": {
       "bundler": "metro",
@@ -33,7 +34,8 @@
       "expo-dev-client",
       "expo-router",
       "expo-font",
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      "expo-dev-menu"
     ],
     "experiments": {
       "typedRoutes": true
